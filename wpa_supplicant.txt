@@ -7,3 +7,5 @@ network={
 	ssid="SpectrumSetup-1AE7"
 	psk="exactrecord569"
 }
+
+# test test
