@@ -27,8 +27,10 @@ button_press_time = 0
 status_change_confirmed = False
 status_change_time = 0
 
-# Mock YouTube status - starts as blocked
+# Mock status - starts as blocked
 mock_youtube_blocked = True
+mock_roblox_blocked = True
+mock_scratch_accessible = True
 
 # ----------------------------
 # Mock Functions
@@ -38,27 +40,37 @@ def mock_youtube_blocked() -> bool:
     """Mock function that simulates checking YouTube block status"""
     return mock_youtube_blocked
 
+def mock_roblox_blocked() -> bool:
+    """Mock function that simulates checking Roblox block status"""
+    return mock_roblox_blocked
+
+def mock_scratch_accessible() -> bool:
+    """Mock function that simulates checking Scratch accessibility"""
+    return mock_scratch_accessible
+
 def mock_block_youtube():
-    """Mock function that simulates blocking YouTube"""
-    global mock_youtube_blocked, button_pressed, button_press_time
+    """Mock function that simulates blocking YouTube and Roblox"""
+    global mock_youtube_blocked, mock_roblox_blocked, button_pressed, button_press_time
     button_pressed = "blocking"
     button_press_time = time.time()
-    print("Mock: Blocking YouTube...")
+    print("Mock: Blocking YouTube and Roblox...")
     # Simulate some delay
     time.sleep(1)
     mock_youtube_blocked = True
-    print("Mock: YouTube blocked!")
+    mock_roblox_blocked = True
+    print("Mock: YouTube and Roblox blocked!")
 
 def mock_allow_youtube():
-    """Mock function that simulates allowing YouTube"""
-    global mock_youtube_blocked, button_pressed, button_press_time
+    """Mock function that simulates allowing YouTube and Roblox"""
+    global mock_youtube_blocked, mock_roblox_blocked, button_pressed, button_press_time
     button_pressed = "allowing"
     button_press_time = time.time()
-    print("Mock: Allowing YouTube...")
+    print("Mock: Allowing YouTube and Roblox...")
     # Simulate some delay
     time.sleep(1)
     mock_youtube_blocked = False
-    print("Mock: YouTube allowed!")
+    mock_roblox_blocked = False
+    print("Mock: YouTube and Roblox allowed!")
 
 # ----------------------------
 # GUI Display Simulation
@@ -96,6 +108,26 @@ class MockDisplay:
         )
         self.status_label.pack()
         
+        # Roblox status label
+        self.roblox_label = tk.Label(
+            self.display_frame,
+            text="Roblox: BLOCKED",
+            font=("Arial", 10),
+            fg="white",
+            bg="red"
+        )
+        self.roblox_label.pack()
+        
+        # Scratch status label
+        self.scratch_label = tk.Label(
+            self.display_frame,
+            text="Scratch: OK",
+            font=("Arial", 10),
+            fg="white",
+            bg="red"
+        )
+        self.scratch_label.pack()
+        
         # Clock label
         self.clock_label = tk.Label(
             self.display_frame,
@@ -112,23 +144,23 @@ class MockDisplay:
         
         self.block_btn = tk.Button(
             self.button_frame,
-            text="BLOCK YouTube",
+            text="BLOCK YouTube & Roblox",
             command=self.on_block_pressed,
             bg="red",
             fg="white",
             font=("Arial", 12, "bold"),
-            width=15
+            width=20
         )
         self.block_btn.pack(side="left", padx=10)
         
         self.allow_btn = tk.Button(
             self.button_frame,
-            text="ALLOW YouTube", 
+            text="ALLOW YouTube & Roblox", 
             command=self.on_allow_pressed,
             bg="green",
             fg="white",
             font=("Arial", 12, "bold"),
-            width=15
+            width=20
         )
         self.allow_btn.pack(side="left", padx=10)
         
@@ -154,10 +186,12 @@ class MockDisplay:
     
     def update_display(self):
         """Update the display - called every 500ms"""
-        global button_pressed, button_press_time, status_change_confirmed, status_change_time, mock_youtube_blocked
+        global button_pressed, button_press_time, status_change_confirmed, status_change_time, mock_youtube_blocked, mock_roblox_blocked, mock_scratch_accessible
         
         current_time = time.time()
-        blocked = mock_youtube_blocked
+        youtube_blocked = mock_youtube_blocked
+        roblox_blocked = mock_roblox_blocked
+        scratch_accessible = mock_scratch_accessible
         
         # Check if we should show button feedback (for 2 seconds after button press)
         show_button_feedback = (button_pressed is not None and 
@@ -170,6 +204,7 @@ class MockDisplay:
         # Determine background color and title
         if show_button_feedback:
             bg_color = "#0064C8"  # Blue
+            text_color = "white"
             if button_pressed == "blocking":
                 title = "BLOCKING..."
             else:  # allowing
@@ -177,25 +212,38 @@ class MockDisplay:
             status_text = "..." + ("." * int((current_time - button_press_time) * 2))[:3]
         elif show_status_confirmation:
             bg_color = "#FFFF00"  # Yellow
+            text_color = "black"  # Black text on yellow background
             title = "STATUS CHANGED!"
             status_text = "✓ DONE"
         else:
-            # Normal status display
-            bg_color = "#C80000" if blocked else "#00B400"  # Red or Green
-            title = "YouTube BLOCKED" if blocked else "YouTube ALLOWED"
+            # Normal status display - show primary service status
+            bg_color = "#C80000" if youtube_blocked else "#00B400"  # Red or Green
+            text_color = "white"
+            title = "YouTube BLOCKED" if youtube_blocked else "YouTube ALLOWED"
             status_text = ""
         
         # Update the display
-        self.title_label.config(text=title, bg=bg_color)
-        self.status_label.config(text=status_text, bg=bg_color)
+        self.title_label.config(text=title, bg=bg_color, fg=text_color)
+        self.status_label.config(text=status_text, bg=bg_color, fg=text_color)
         self.clock_label.config(
             text=datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
-            bg=bg_color
+            bg=bg_color,
+            fg=text_color
         )
         self.display_frame.config(bg=bg_color)
         
-        # Update clock
-        self.clock_label.config(text=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        # Update Roblox and Scratch status (only in normal display mode)
+        if not show_button_feedback and not show_status_confirmation:
+            roblox_text = "Roblox: " + ("BLOCKED" if roblox_blocked else "ALLOWED")
+            self.roblox_label.config(text=roblox_text, bg=bg_color, fg=text_color)
+            
+            scratch_text = "Scratch: " + ("OK" if scratch_accessible else "BLOCKED!")
+            scratch_color = text_color if scratch_accessible else "yellow"
+            self.scratch_label.config(text=scratch_text, bg=bg_color, fg=scratch_color)
+        else:
+            # Clear status lines during feedback/confirmation
+            self.roblox_label.config(text="", bg=bg_color, fg=text_color)
+            self.scratch_label.config(text="", bg=bg_color, fg=text_color)
         
         # Schedule next update
         self.root.after(500, self.update_display)
@@ -209,24 +257,24 @@ class MockDisplay:
 # ----------------------------
 
 def main():
-    global button_pressed, button_press_time, status_change_confirmed, status_change_time, mock_youtube_blocked
+    global button_pressed, button_press_time, status_change_confirmed, status_change_time, mock_youtube_blocked, mock_roblox_blocked, mock_scratch_accessible
     
     last_state = None
     
     def check_status_changes():
         """Background thread to check for status changes"""
         nonlocal last_state
-        global button_pressed, button_press_time, status_change_confirmed, status_change_time, mock_youtube_blocked
+        global button_pressed, button_press_time, status_change_confirmed, status_change_time, mock_youtube_blocked, mock_roblox_blocked, mock_scratch_accessible
         while True:
             current_time = time.time()
-            blocked = mock_youtube_blocked
+            youtube_blocked = mock_youtube_blocked
             
-            # Handle status changes
-            if blocked != last_state:
+            # Handle status changes (check YouTube as primary status)
+            if youtube_blocked != last_state:
                 if last_state is not None:  # Don't show confirmation on first run
                     status_change_confirmed = True
                     status_change_time = current_time
-                last_state = blocked
+                last_state = youtube_blocked
                 # Clear button feedback when status actually changes
                 button_pressed = None
             
