@@ -15,23 +15,37 @@ run_on_pi() {
     ssh "$PI_USER@$PI_HOST" "$1"
 }
 
-# Block YouTube
+# Block YouTube and Roblox
 block_youtube() {
-    echo "Blocking YouTube on Pi-hole..."
+    echo "Blocking YouTube and Roblox on Pi-hole..."
     run_on_pi "yb"
     echo "Done! Check your Pi-hole screen."
 }
 
-# Allow YouTube  
+# Allow YouTube and Roblox
 allow_youtube() {
-    echo "Allowing YouTube on Pi-hole..."
+    echo "Allowing YouTube and Roblox on Pi-hole..."
     run_on_pi "yu"
+    echo "Done! Check your Pi-hole screen."
+}
+
+# Block Roblox only
+block_roblox() {
+    echo "Blocking Roblox only on Pi-hole..."
+    run_on_pi "rb"
+    echo "Done! Check your Pi-hole screen."
+}
+
+# Allow Roblox only
+allow_roblox() {
+    echo "Allowing Roblox only on Pi-hole..."
+    run_on_pi "ru"
     echo "Done! Check your Pi-hole screen."
 }
 
 # Check status
 check_status() {
-    echo "Checking YouTube status on Pi-hole..."
+    echo "Checking YouTube, Roblox, and Scratch status on Pi-hole..."
     run_on_pi "ys"
 }
 
@@ -50,6 +64,12 @@ case "$1" in
     "allow"|"a")
         allow_youtube
         ;;
+    "block-roblox"|"br")
+        block_roblox
+        ;;
+    "allow-roblox"|"ar")
+        allow_roblox
+        ;;
     "status"|"s")
         check_status
         ;;
@@ -57,17 +77,23 @@ case "$1" in
         refresh_display
         ;;
     *)
-        echo "Usage: $0 {block|allow|status|refresh}"
+        echo "Usage: $0 {block|allow|block-roblox|allow-roblox|status|refresh}"
         echo ""
         echo "Commands:"
-        echo "  block, b    - Block YouTube"
-        echo "  allow, a    - Allow YouTube"
-        echo "  status, s   - Check current status"
-        echo "  refresh, r  - Force display refresh"
+        echo "  block, b           - Block YouTube and Roblox"
+        echo "  allow, a           - Allow YouTube and Roblox"
+        echo "  block-roblox, br   - Block Roblox only (YouTube unchanged)"
+        echo "  allow-roblox, ar   - Allow Roblox only (YouTube unchanged)"
+        echo "  status, s          - Check current status of all services"
+        echo "  refresh, r         - Force display refresh"
         echo ""
         echo "Examples:"
-        echo "  $0 block"
-        echo "  $0 allow"
-        echo "  $0 status"
+        echo "  $0 block           # Block both YouTube and Roblox"
+        echo "  $0 allow           # Allow both YouTube and Roblox"
+        echo "  $0 block-roblox    # Block only Roblox"
+        echo "  $0 allow-roblox    # Allow only Roblox"
+        echo "  $0 status          # Check all statuses"
+        echo ""
+        echo "Note: All commands ensure Scratch domains remain whitelisted!"
         ;;
 esac

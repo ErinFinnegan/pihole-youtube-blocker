@@ -112,8 +112,39 @@ def youtube_blocked() -> bool:
     except Exception:
         return True  # fail safe: assume blocked
 
+def roblox_blocked() -> bool:
+    """Check if Roblox is blocked by testing a Roblox domain"""
+    try:
+        result = subprocess.run(
+            ["pihole", "-q", "roblox.com"], 
+            capture_output=True, 
+            text=True, 
+            timeout=5
+        )
+        return "BLOCKED" in result.stdout
+    except Exception:
+        return True  # fail safe: assume blocked
+
+def scratch_accessible() -> bool:
+    """Check if Scratch is accessible by testing a Scratch domain"""
+    try:
+        result = subprocess.run(
+            ["pihole", "-q", "scratch.mit.edu"], 
+            capture_output=True, 
+            text=True, 
+            timeout=5
+        )
+        return "OK" in result.stdout
+    except Exception:
+        return False  # fail safe: assume blocked
+
 def draw(blocked: bool, show_button_feedback=False, show_status_confirmation=False):
     global button_pressed, button_press_time, status_change_confirmed, status_change_time
+    
+    # Get current status of all services
+    youtube_status = blocked
+    roblox_status = roblox_blocked()
+    scratch_status = scratch_accessible()
     
     # Determine background color and title
     if show_button_feedback:
@@ -128,9 +159,9 @@ def draw(blocked: bool, show_button_feedback=False, show_status_confirmation=Fal
         bg_color = YELLOW
         title = "STATUS CHANGED!"
     else:
-        # Normal status display
-        bg_color = RED if blocked else GREEN
-        title = "YouTube BLOCKED" if blocked else "YouTube ALLOWED"
+        # Normal status display - show primary service status
+        bg_color = RED if youtube_status else GREEN
+        title = "YouTube BLOCKED" if youtube_status else "YouTube ALLOWED"
     
     img = Image.new("RGB", (W, H), color=bg_color)
     d = ImageDraw.Draw(img)
@@ -162,6 +193,27 @@ def draw(blocked: bool, show_button_feedback=False, show_status_confirmation=Fal
         except AttributeError:
             cw, ch = d.textsize(confirm_msg, font=FS)
         d.text(((W - cw)//2, 50), confirm_msg, font=FS, fill=WHITE)
+    
+    # Add status indicators for other services (only in normal display mode)
+    if not show_button_feedback and not show_status_confirmation:
+        # Show Roblox status
+        roblox_text = "Roblox: " + ("BLOCKED" if roblox_status else "ALLOWED")
+        try:
+            bbox = d.textbbox((0, 0), roblox_text, font=FS)
+            rw, rh = bbox[2] - bbox[0], bbox[3] - bbox[1]
+        except AttributeError:
+            rw, rh = d.textsize(roblox_text, font=FS)
+        d.text(((W - rw)//2, 50), roblox_text, font=FS, fill=WHITE)
+        
+        # Show Scratch status
+        scratch_text = "Scratch: " + ("OK" if scratch_status else "BLOCKED!")
+        scratch_color = WHITE if scratch_status else YELLOW
+        try:
+            bbox = d.textbbox((0, 0), scratch_text, font=FS)
+            sw, sh = bbox[2] - bbox[0], bbox[3] - bbox[1]
+        except AttributeError:
+            sw, sh = d.textsize(scratch_text, font=FS)
+        d.text(((W - sw)//2, 70), scratch_text, font=FS, fill=scratch_color)
     
     # Clock at bottom
     d.text((6, H-18), datetime.now().strftime("%Y-%m-%d %H:%M:%S"), font=FS, fill=WHITE)
