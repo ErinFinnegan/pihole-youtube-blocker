@@ -88,8 +88,15 @@ def _clean_exit(*_):
         pass
     sys.exit(0)
 
+def _force_refresh(*_):
+    """Force immediate display refresh when signaled"""
+    global last_state
+    last_state = None  # Force a refresh on next loop iteration
+    print("Display refresh requested via signal")
+
 signal.signal(signal.SIGINT, _clean_exit)
 signal.signal(signal.SIGTERM, _clean_exit)
+signal.signal(signal.SIGUSR1, _force_refresh)  # Handle refresh signal
 
 # ----------------------------
 # Helpers

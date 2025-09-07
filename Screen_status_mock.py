@@ -216,6 +216,7 @@ def main():
     def check_status_changes():
         """Background thread to check for status changes"""
         nonlocal last_state
+        global button_pressed, button_press_time, status_change_confirmed, status_change_time, mock_youtube_blocked
         while True:
             current_time = time.time()
             blocked = mock_youtube_blocked
