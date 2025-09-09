@@ -138,7 +138,9 @@ def scratch_accessible() -> bool:
             text=True, 
             timeout=5
         )
-        return "OK" in result.stdout
+        # Check for various indicators that the domain is accessible
+        output = result.stdout.lower()
+        return ("ok" in output or "allowed" in output or "not blocked" in output) and "blocked" not in output
     except Exception:
         return False  # fail safe: assume blocked
 
@@ -203,21 +205,21 @@ def draw(blocked: bool, show_button_feedback=False, show_status_confirmation=Fal
         # Show Roblox status
         roblox_text = "Roblox: " + ("BLOCKED" if roblox_status else "ALLOWED")
         try:
-            bbox = d.textbbox((0, 0), roblox_text, font=FS)
+            bbox = d.textbbox((0, 0), roblox_text, font=FB)
             rw, rh = bbox[2] - bbox[0], bbox[3] - bbox[1]
         except AttributeError:
-            rw, rh = d.textsize(roblox_text, font=FS)
-        d.text(((IMG_W - rw)//2, 50), roblox_text, font=FS, fill=WHITE)
+            rw, rh = d.textsize(roblox_text, font=FB)
+        d.text(((IMG_W - rw)//2, 50), roblox_text, font=FB, fill=WHITE)
         
         # Show Scratch status
         scratch_text = "Scratch: " + ("OK" if scratch_status else "BLOCKED!")
         scratch_color = WHITE if scratch_status else YELLOW
         try:
-            bbox = d.textbbox((0, 0), scratch_text, font=FS)
+            bbox = d.textbbox((0, 0), scratch_text, font=FB)
             sw, sh = bbox[2] - bbox[0], bbox[3] - bbox[1]
         except AttributeError:
-            sw, sh = d.textsize(scratch_text, font=FS)
-        d.text(((IMG_W - sw)//2, 70), scratch_text, font=FS, fill=scratch_color)
+            sw, sh = d.textsize(scratch_text, font=FB)
+        d.text(((IMG_W - sw)//2, 70), scratch_text, font=FB, fill=scratch_color)
     
     # Clock at bottom
     d.text((6, IMG_H-18), datetime.now().strftime("%Y-%m-%d %H:%M:%S"), font=FS, fill=WHITE)

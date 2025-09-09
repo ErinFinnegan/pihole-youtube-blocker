@@ -14,28 +14,28 @@ echo "Blocking YouTube and Roblox..."
 sudo sqlite3 /etc/pihole/gravity.db "UPDATE 'group' SET enabled=1 WHERE name='KidsRestricted';"
 
 # Block Roblox domains
-pihole -b roblox.com rbxcdn.com rbxtrk.com roblox.plus
-pihole -b ecsv2.roblox.com ncs.roblox.com client-telemetry.roblox.com
-pihole -b presence.roblox.com gold.roblox.com lms.roblox.com
-pihole -b metrics.roblox.com tracing.roblox.com
-pihole -b setup.roblox.com version.roblox.com assetdelivery.roblox.com
-pihole -b thumbs.roblox.com thumbnails.roblox.com avatar.roblox.com
-pihole -b catalog.roblox.com economy.roblox.com friends.roblox.com
-pihole -b groups.roblox.com inventory.roblox.com itemconfiguration.roblox.com
-pihole -b locale.roblox.com localization.roblox.com notifications.roblox.com
-pihole -b publish.roblox.com realtime.roblox.com share.roblox.com
-pihole -b textfilter.roblox.com trades.roblox.com translation.roblox.com
-pihole -b users.roblox.com voice.roblox.com
+pihole deny roblox.com rbxcdn.com rbxtrk.com roblox.plus
+pihole deny ecsv2.roblox.com ncs.roblox.com client-telemetry.roblox.com
+pihole deny presence.roblox.com gold.roblox.com lms.roblox.com
+pihole deny metrics.roblox.com tracing.roblox.com
+pihole deny setup.roblox.com version.roblox.com assetdelivery.roblox.com
+pihole deny thumbs.roblox.com thumbnails.roblox.com avatar.roblox.com
+pihole deny catalog.roblox.com economy.roblox.com friends.roblox.com
+pihole deny groups.roblox.com inventory.roblox.com itemconfiguration.roblox.com
+pihole deny locale.roblox.com localization.roblox.com notifications.roblox.com
+pihole deny publish.roblox.com realtime.roblox.com share.roblox.com
+pihole deny textfilter.roblox.com trades.roblox.com translation.roblox.com
+pihole deny users.roblox.com voice.roblox.com
 
 # Ensure Scratch domains remain whitelisted
-pihole -w scratch.mit.edu api.scratch.mit.edu projects.scratch.mit.edu
-pihole -w cdn.scratch.mit.edu cdn2.scratch.mit.edu assets.scratch.mit.edu
-pihole -w clouddata.scratch.mit.edu download.scratch.mit.edu
-pihole -w downloads.scratch.mit.edu uploads.scratch.mit.edu
-pihole -w scratch-edu.mit.edu scratchjr.mit.edu
-pihole -w recaptcha.net www.recaptcha.net gstatic.com www.gstatic.com
-pihole -w fonts.gstatic.com wistia.com fast.wistia.net wistia.net
-pihole -w akamaihd.net embedwistia-a.akamaihd.net
+pihole allow scratch.mit.edu api.scratch.mit.edu projects.scratch.mit.edu
+pihole allow cdn.scratch.mit.edu cdn2.scratch.mit.edu assets.scratch.mit.edu
+pihole allow clouddata.scratch.mit.edu download.scratch.mit.edu
+pihole allow downloads.scratch.mit.edu uploads.scratch.mit.edu
+pihole allow scratch-edu.mit.edu scratchjr.mit.edu
+pihole allow recaptcha.net www.recaptcha.net gstatic.com www.gstatic.com
+pihole allow fonts.gstatic.com wistia.com fast.wistia.net wistia.net
+pihole allow akamaihd.net embedwistia-a.akamaihd.net
 
 # Force Pi-hole to reload
 sudo pihole reloadlists
@@ -57,28 +57,28 @@ echo "Allowing YouTube and Roblox..."
 sudo sqlite3 /etc/pihole/gravity.db "UPDATE 'group' SET enabled=0 WHERE name='KidsRestricted';"
 
 # Unblock Roblox domains
-pihole -b -d roblox.com rbxcdn.com rbxtrk.com roblox.plus
-pihole -b -d ecsv2.roblox.com ncs.roblox.com client-telemetry.roblox.com
-pihole -b -d presence.roblox.com gold.roblox.com lms.roblox.com
-pihole -b -d metrics.roblox.com tracing.roblox.com
-pihole -b -d setup.roblox.com version.roblox.com assetdelivery.roblox.com
-pihole -b -d thumbs.roblox.com thumbnails.roblox.com avatar.roblox.com
-pihole -b -d catalog.roblox.com economy.roblox.com friends.roblox.com
-pihole -b -d groups.roblox.com inventory.roblox.com itemconfiguration.roblox.com
-pihole -b -d locale.roblox.com localization.roblox.com notifications.roblox.com
-pihole -b -d publish.roblox.com realtime.roblox.com share.roblox.com
-pihole -b -d textfilter.roblox.com trades.roblox.com translation.roblox.com
-pihole -b -d users.roblox.com voice.roblox.com
+pihole allow roblox.com rbxcdn.com rbxtrk.com roblox.plus
+pihole allow ecsv2.roblox.com ncs.roblox.com client-telemetry.roblox.com
+pihole allow presence.roblox.com gold.roblox.com lms.roblox.com
+pihole allow metrics.roblox.com tracing.roblox.com
+pihole allow setup.roblox.com version.roblox.com assetdelivery.roblox.com
+pihole allow thumbs.roblox.com thumbnails.roblox.com avatar.roblox.com
+pihole allow catalog.roblox.com economy.roblox.com friends.roblox.com
+pihole allow groups.roblox.com inventory.roblox.com itemconfiguration.roblox.com
+pihole allow locale.roblox.com localization.roblox.com notifications.roblox.com
+pihole allow publish.roblox.com realtime.roblox.com share.roblox.com
+pihole allow textfilter.roblox.com trades.roblox.com translation.roblox.com
+pihole allow users.roblox.com voice.roblox.com
 
 # Ensure Scratch domains remain whitelisted
-pihole -w scratch.mit.edu api.scratch.mit.edu projects.scratch.mit.edu
-pihole -w cdn.scratch.mit.edu cdn2.scratch.mit.edu assets.scratch.mit.edu
-pihole -w clouddata.scratch.mit.edu download.scratch.mit.edu
-pihole -w downloads.scratch.mit.edu uploads.scratch.mit.edu
-pihole -w scratch-edu.mit.edu scratchjr.mit.edu
-pihole -w recaptcha.net www.recaptcha.net gstatic.com www.gstatic.com
-pihole -w fonts.gstatic.com wistia.com fast.wistia.net wistia.net
-pihole -w akamaihd.net embedwistia-a.akamaihd.net
+pihole allow scratch.mit.edu api.scratch.mit.edu projects.scratch.mit.edu
+pihole allow cdn.scratch.mit.edu cdn2.scratch.mit.edu assets.scratch.mit.edu
+pihole allow clouddata.scratch.mit.edu download.scratch.mit.edu
+pihole allow downloads.scratch.mit.edu uploads.scratch.mit.edu
+pihole allow scratch-edu.mit.edu scratchjr.mit.edu
+pihole allow recaptcha.net www.recaptcha.net gstatic.com www.gstatic.com
+pihole allow fonts.gstatic.com wistia.com fast.wistia.net wistia.net
+pihole allow akamaihd.net embedwistia-a.akamaihd.net
 
 # Force Pi-hole to reload
 sudo pihole reloadlists
@@ -139,28 +139,28 @@ cat > /tmp/rb_enhanced << 'EOF'
 echo "Blocking Roblox only (YouTube status unchanged)..."
 
 # Block Roblox domains
-pihole -b roblox.com rbxcdn.com rbxtrk.com roblox.plus
-pihole -b ecsv2.roblox.com ncs.roblox.com client-telemetry.roblox.com
-pihole -b presence.roblox.com gold.roblox.com lms.roblox.com
-pihole -b metrics.roblox.com tracing.roblox.com
-pihole -b setup.roblox.com version.roblox.com assetdelivery.roblox.com
-pihole -b thumbs.roblox.com thumbnails.roblox.com avatar.roblox.com
-pihole -b catalog.roblox.com economy.roblox.com friends.roblox.com
-pihole -b groups.roblox.com inventory.roblox.com itemconfiguration.roblox.com
-pihole -b locale.roblox.com localization.roblox.com notifications.roblox.com
-pihole -b publish.roblox.com realtime.roblox.com share.roblox.com
-pihole -b textfilter.roblox.com trades.roblox.com translation.roblox.com
-pihole -b users.roblox.com voice.roblox.com
+pihole deny roblox.com rbxcdn.com rbxtrk.com roblox.plus
+pihole deny ecsv2.roblox.com ncs.roblox.com client-telemetry.roblox.com
+pihole deny presence.roblox.com gold.roblox.com lms.roblox.com
+pihole deny metrics.roblox.com tracing.roblox.com
+pihole deny setup.roblox.com version.roblox.com assetdelivery.roblox.com
+pihole deny thumbs.roblox.com thumbnails.roblox.com avatar.roblox.com
+pihole deny catalog.roblox.com economy.roblox.com friends.roblox.com
+pihole deny groups.roblox.com inventory.roblox.com itemconfiguration.roblox.com
+pihole deny locale.roblox.com localization.roblox.com notifications.roblox.com
+pihole deny publish.roblox.com realtime.roblox.com share.roblox.com
+pihole deny textfilter.roblox.com trades.roblox.com translation.roblox.com
+pihole deny users.roblox.com voice.roblox.com
 
 # Ensure Scratch domains remain whitelisted
-pihole -w scratch.mit.edu api.scratch.mit.edu projects.scratch.mit.edu
-pihole -w cdn.scratch.mit.edu cdn2.scratch.mit.edu assets.scratch.mit.edu
-pihole -w clouddata.scratch.mit.edu download.scratch.mit.edu
-pihole -w downloads.scratch.mit.edu uploads.scratch.mit.edu
-pihole -w scratch-edu.mit.edu scratchjr.mit.edu
-pihole -w recaptcha.net www.recaptcha.net gstatic.com www.gstatic.com
-pihole -w fonts.gstatic.com wistia.com fast.wistia.net wistia.net
-pihole -w akamaihd.net embedwistia-a.akamaihd.net
+pihole allow scratch.mit.edu api.scratch.mit.edu projects.scratch.mit.edu
+pihole allow cdn.scratch.mit.edu cdn2.scratch.mit.edu assets.scratch.mit.edu
+pihole allow clouddata.scratch.mit.edu download.scratch.mit.edu
+pihole allow downloads.scratch.mit.edu uploads.scratch.mit.edu
+pihole allow scratch-edu.mit.edu scratchjr.mit.edu
+pihole allow recaptcha.net www.recaptcha.net gstatic.com www.gstatic.com
+pihole allow fonts.gstatic.com wistia.com fast.wistia.net wistia.net
+pihole allow akamaihd.net embedwistia-a.akamaihd.net
 
 # Force Pi-hole to reload
 sudo pihole reloadlists
@@ -179,28 +179,28 @@ cat > /tmp/ru_enhanced << 'EOF'
 echo "Allowing Roblox only (YouTube status unchanged)..."
 
 # Unblock Roblox domains
-pihole -b -d roblox.com rbxcdn.com rbxtrk.com roblox.plus
-pihole -b -d ecsv2.roblox.com ncs.roblox.com client-telemetry.roblox.com
-pihole -b -d presence.roblox.com gold.roblox.com lms.roblox.com
-pihole -b -d metrics.roblox.com tracing.roblox.com
-pihole -b -d setup.roblox.com version.roblox.com assetdelivery.roblox.com
-pihole -b -d thumbs.roblox.com thumbnails.roblox.com avatar.roblox.com
-pihole -b -d catalog.roblox.com economy.roblox.com friends.roblox.com
-pihole -b -d groups.roblox.com inventory.roblox.com itemconfiguration.roblox.com
-pihole -b -d locale.roblox.com localization.roblox.com notifications.roblox.com
-pihole -b -d publish.roblox.com realtime.roblox.com share.roblox.com
-pihole -b -d textfilter.roblox.com trades.roblox.com translation.roblox.com
-pihole -b -d users.roblox.com voice.roblox.com
+pihole allow roblox.com rbxcdn.com rbxtrk.com roblox.plus
+pihole allow ecsv2.roblox.com ncs.roblox.com client-telemetry.roblox.com
+pihole allow presence.roblox.com gold.roblox.com lms.roblox.com
+pihole allow metrics.roblox.com tracing.roblox.com
+pihole allow setup.roblox.com version.roblox.com assetdelivery.roblox.com
+pihole allow thumbs.roblox.com thumbnails.roblox.com avatar.roblox.com
+pihole allow catalog.roblox.com economy.roblox.com friends.roblox.com
+pihole allow groups.roblox.com inventory.roblox.com itemconfiguration.roblox.com
+pihole allow locale.roblox.com localization.roblox.com notifications.roblox.com
+pihole allow publish.roblox.com realtime.roblox.com share.roblox.com
+pihole allow textfilter.roblox.com trades.roblox.com translation.roblox.com
+pihole allow users.roblox.com voice.roblox.com
 
 # Ensure Scratch domains remain whitelisted
-pihole -w scratch.mit.edu api.scratch.mit.edu projects.scratch.mit.edu
-pihole -w cdn.scratch.mit.edu cdn2.scratch.mit.edu assets.scratch.mit.edu
-pihole -w clouddata.scratch.mit.edu download.scratch.mit.edu
-pihole -w downloads.scratch.mit.edu uploads.scratch.mit.edu
-pihole -w scratch-edu.mit.edu scratchjr.mit.edu
-pihole -w recaptcha.net www.recaptcha.net gstatic.com www.gstatic.com
-pihole -w fonts.gstatic.com wistia.com fast.wistia.net wistia.net
-pihole -w akamaihd.net embedwistia-a.akamaihd.net
+pihole allow scratch.mit.edu api.scratch.mit.edu projects.scratch.mit.edu
+pihole allow cdn.scratch.mit.edu cdn2.scratch.mit.edu assets.scratch.mit.edu
+pihole allow clouddata.scratch.mit.edu download.scratch.mit.edu
+pihole allow downloads.scratch.mit.edu uploads.scratch.mit.edu
+pihole allow scratch-edu.mit.edu scratchjr.mit.edu
+pihole allow recaptcha.net www.recaptcha.net gstatic.com www.gstatic.com
+pihole allow fonts.gstatic.com wistia.com fast.wistia.net wistia.net
+pihole allow akamaihd.net embedwistia-a.akamaihd.net
 
 # Force Pi-hole to reload
 sudo pihole reloadlists
