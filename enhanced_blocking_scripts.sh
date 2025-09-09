@@ -106,14 +106,14 @@ else
 fi
 
 # Check Roblox status
-if pihole -q roblox.com | grep -q "BLOCKED"; then
+if sudo pihole -q roblox.com | grep -q "BLOCKED"; then
     echo "🎮 Roblox: BLOCKED"
 else
     echo "🎮 Roblox: ALLOWED"
 fi
 
 # Check Scratch status
-if pihole -q scratch.mit.edu | grep -q "OK"; then
+if sudo pihole -q scratch.mit.edu | grep -q "OK"; then
     echo "✅ Scratch: ACCESSIBLE"
 else
     echo "❌ Scratch: BLOCKED (This is bad!)"
@@ -122,15 +122,15 @@ fi
 echo ""
 echo "=== Domain Test Results ==="
 echo "Testing roblox.com:"
-pihole -q roblox.com
+sudo pihole -q roblox.com
 
 echo ""
 echo "Testing scratch.mit.edu:"
-pihole -q scratch.mit.edu
+sudo pihole -q scratch.mit.edu
 
 echo ""
 echo "Testing youtube.com:"
-pihole -q youtube.com
+sudo pihole -q youtube.com
 EOF
 
 # Roblox-only block script (rb)
