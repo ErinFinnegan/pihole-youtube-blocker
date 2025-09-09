@@ -1,6 +1,6 @@
 # Pi-hole LCD Screen Deployment Instructions
 
-## 🚀 How to Deploy the Enhanced Button Feedback System
+## 🚀 How to Deploy the Enhanced Dual-Button System with Session Monitoring
 
 ### Prerequisites
 - Raspberry Pi Zero WH with Pi-hole installed
@@ -8,29 +8,56 @@
 - SSH access to your Pi
 - Current display service running as `tft-youtube.service`
 
-### Step 1: Install Improved Blocking Scripts
+### Step 1: Test the System Locally (Recommended)
 
-On your Pi, install the enhanced blocking scripts that force immediate display updates:
+Before deploying to your Pi, test the dual-button functionality:
 
 ```bash
-# Copy the improved scripts to /usr/local/bin/
-sudo cp /tmp/yb_improved /usr/local/bin/yb
-sudo cp /tmp/yu_improved /usr/local/bin/yu
-sudo cp /tmp/ys_improved /usr/local/bin/ys
-
-# Make them executable
-sudo chmod +x /usr/local/bin/y{b,u,s}
+# Test the mock system
+python3 Screen_status_mock_dual.py
 ```
 
-### Step 2: Update Display Service Script
+**Test Features:**
+- Click "BTN1: Toggle YouTube & Roblox" to test blocking toggle
+- Click "BTN2: Kill Active Sessions" to test session termination
+- Watch the display change colors and show feedback
 
-Replace your current `~/tft-youtube-status.py` with the enhanced version that includes:
-- Immediate button press feedback (blue screen with animated dots)
-- Status change confirmation (yellow screen with checkmark)
-- Signal handling for SSH-triggered refreshes
-- Threading support for non-blocking operations
+### Step 2: Deploy Session Monitoring System
 
-### Step 3: Restart Display Service
+Copy the session monitoring files to your Pi:
+
+```bash
+# Copy session monitoring files
+scp session_monitor.py zerocool@pi-hole.local:~/
+scp session_control.sh zerocool@pi-hole.local:~/
+
+# Make scripts executable
+ssh zerocool@pi-hole.local "chmod +x session_monitor.py session_control.sh"
+```
+
+### Step 3: Deploy Enhanced Display Script
+
+Copy the dual-button display script to your Pi:
+
+```bash
+# Copy enhanced display script
+scp Screen_status_dual_buttons.py zerocool@pi-hole.local:~/tft-youtube-status.py
+```
+
+### Step 4: Install Enhanced Blocking Scripts (Optional)
+
+If you want the enhanced blocking scripts with Roblox support:
+
+```bash
+# First, run the setup script to create all the individual command files
+bash /usr/local/bin/yb_enhanced
+
+# The setup script will create and install all the commands automatically
+# Now make them executable (they should exist after running the setup script)
+sudo chmod +x /usr/local/bin/y{b,u,s} /usr/local/bin/r{b,u}
+```
+
+### Step 5: Restart Display Service
 
 ```bash
 # Restart the display service to load the new code
@@ -40,26 +67,44 @@ sudo systemctl restart tft-youtube.service
 sudo systemctl status tft-youtube.service
 ```
 
-### Step 4: Test the System
+### Step 6: Test the Dual-Button System
 
 #### Test Physical Buttons
-- Press the left button (GPIO 23) - should show blue "BLOCKING..." screen
-- Press the right button (GPIO 24) - should show blue "ALLOWING..." screen
-- Watch for yellow "STATUS CHANGED!" confirmation
-- Verify final status shows correct color (red=blocked, green=allowed)
+- **Press Button 1 (Left - GPIO 23)**: Should show blue "TOGGLING..." screen
+- **Press Button 2 (Right - GPIO 24)**: Should show purple "KILLING SESSIONS..." screen
+- **Watch for confirmations**: Yellow "STATUS CHANGED!" or "KILLED X SESSIONS!"
+- **Verify final status**: Background color changes (red=blocked, green=allowed)
 
-#### Test SSH Commands
-From your Mac, use the provided SSH control script:
+#### Test Session Monitoring
+```bash
+# Check session status
+ssh zerocool@pi-hole.local "./session_control.sh status"
+
+# List active sessions
+ssh zerocool@pi-hole.local "./session_control.sh list"
+
+# Start continuous monitoring
+ssh zerocool@pi-hole.local "./session_control.sh monitor"
+```
+
+#### Test SSH Commands (Enhanced)
+From your Mac, use the enhanced SSH control script:
 
 ```bash
 # Make the script executable (if not already)
 chmod +x ssh_commands.sh
 
-# Test blocking YouTube
+# Test blocking YouTube and Roblox
 ./ssh_commands.sh block
 
-# Test allowing YouTube
+# Test allowing YouTube and Roblox
 ./ssh_commands.sh allow
+
+# Test blocking only Roblox
+./ssh_commands.sh block-roblox
+
+# Test allowing only Roblox
+./ssh_commands.sh allow-roblox
 
 # Check current status
 ./ssh_commands.sh status
@@ -68,12 +113,15 @@ chmod +x ssh_commands.sh
 ./ssh_commands.sh refresh
 ```
 
-### Step 5: Verify Everything Works
+### Step 7: Verify Everything Works
 
-1. **Button Feedback**: Press buttons and verify immediate blue screen response
-2. **Status Confirmation**: Watch for yellow confirmation screen after status changes
-3. **SSH Updates**: Run blocking commands via SSH and verify screen updates immediately
-4. **Final States**: Confirm red screen = blocked, green screen = allowed
+1. **Dual Button Feedback**: 
+   - Button 1: Blue "TOGGLING..." screen
+   - Button 2: Purple "KILLING SESSIONS..." screen
+2. **Status Confirmation**: Watch for yellow confirmation screens
+3. **Session Monitoring**: Check that active sessions are detected and displayed
+4. **SSH Updates**: Run commands via SSH and verify screen updates immediately
+5. **Final States**: Confirm red screen = blocked, green screen = allowed
 
 ### Troubleshooting
 
@@ -100,9 +148,21 @@ import RPi.GPIO as GPIO
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(23, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(24, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-print('GPIO 23 (Block):', GPIO.input(23))
-print('GPIO 24 (Allow):', GPIO.input(24))
+print('GPIO 23 (Toggle):', GPIO.input(23))
+print('GPIO 24 (Kill):', GPIO.input(24))
 "
+```
+
+#### If Session Monitoring Doesn't Work:
+```bash
+# Check session monitor
+./session_control.sh status
+
+# Check Pi-hole database access
+sudo sqlite3 /etc/pihole/pihole-FTL.db "SELECT COUNT(*) FROM queries;"
+
+# Check recent queries
+sudo sqlite3 /etc/pihole/pihole-FTL.db "SELECT domain, client, timestamp FROM queries ORDER BY timestamp DESC LIMIT 10;"
 ```
 
 #### If Pi-hole Commands Fail:
@@ -118,8 +178,14 @@ sudo systemctl status pihole-FTL
 
 ### Features Added
 
-✅ **Immediate Button Feedback**: Blue screen with animated dots when buttons are pressed  
-✅ **Status Change Confirmation**: Yellow screen with checkmark when status actually changes  
+✅ **Dual Button Functionality**: 
+- Button 1: Toggle YouTube/Roblox blocking
+- Button 2: Kill all active sessions
+✅ **Session Monitoring**: Real-time detection of active YouTube/Roblox sessions  
+✅ **Session Termination**: Kill active sessions by blocking their domains  
+✅ **Enhanced Display**: Shows active session counts and button instructions  
+✅ **Immediate Button Feedback**: Color-coded screens for different actions  
+✅ **Status Change Confirmation**: Yellow screen with detailed confirmations  
 ✅ **SSH-Triggered Updates**: Screen updates immediately when commands run via SSH  
 ✅ **Threading Support**: Non-blocking button operations  
 ✅ **Signal Handling**: Display service responds to refresh signals  
@@ -127,10 +193,14 @@ sudo systemctl status pihole-FTL
 
 ### Files Modified/Created
 
-- `Screen_status.py` - Enhanced display service with button feedback
-- `Screen_status_mock.py` - Mock version for testing without hardware
-- `improved_blocking_scripts.sh` - Enhanced blocking/unblocking scripts
-- `ssh_commands.sh` - Convenient SSH control script
-- `deploy.md` - This deployment guide
+- `Screen_status_dual_buttons.py` - Enhanced display service with dual buttons
+- `Screen_status_mock_dual.py` - Mock version for testing dual-button functionality
+- `session_monitor.py` - Core session detection and termination system
+- `session_control.sh` - Command-line interface for session management
+- `enhanced_blocking_scripts.sh` - Enhanced blocking/unblocking scripts with Roblox support
+- `ssh_commands.sh` - Enhanced SSH control script with Roblox commands
+- `dual_button_deployment.md` - Comprehensive dual-button setup guide
+- `session_monitoring_setup.md` - Session monitoring setup guide
+- `deploy.md` - This updated deployment guide
 
-The system now provides clear visual feedback at every step, ensuring you always know when your button press was registered and when the YouTube blocking status has actually changed!
+The system now provides powerful dual-button control with real-time session monitoring, ensuring you have complete control over YouTube/Roblox access while preserving educational content like Scratch!
