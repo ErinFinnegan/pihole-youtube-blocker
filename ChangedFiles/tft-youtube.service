@@ -1,0 +1,14 @@
+[Unit]
+Description=PiTFT YouTube Status
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/home/zerocool/pitft-venv/bin/python3 /home/zerocool/tft-youtube-status.py
+Restart=always
+User=root
+Group=root
+WorkingDirectory=/home/zerocool
+
+[Install]
+WantedBy=multi-user.target
