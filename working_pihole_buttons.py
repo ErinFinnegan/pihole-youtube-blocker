@@ -64,7 +64,7 @@ def block_youtube_roblox():
     # Block YouTube domains
     youtube_domains = [
         "youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be",
-        "googlevideo.com", "ytimg.com", "youtubei.googleapis.com"
+        "googlevideo.com", "ytimg.com", "youtube.googleapis.com"
     ]
     
     # Block Roblox domains  

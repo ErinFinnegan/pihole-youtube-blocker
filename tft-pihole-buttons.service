@@ -1,0 +1,25 @@
+[Unit]
+Description=Pi-hole Button Control with Display
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/home/zerocool
+ExecStart=/home/zerocool/pitft-venv/bin/python3 /home/zerocool/working_pihole_buttons_improved.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# Environment variables
+Environment=PYTHONUNBUFFERED=1
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
