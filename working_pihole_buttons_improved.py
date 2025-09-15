@@ -75,15 +75,15 @@ signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
 def get_blocking_status():
-    """Check if YouTube and Roblox are currently blocked"""
+    """Check if YouTube and Roblox are currently blocked via KidsRestricted group"""
     try:
-        # Check YouTube directly in database
+        # Check if KidsRestricted group is enabled (this controls YouTube blocking)
         result = subprocess.run(['sudo', 'sqlite3', '/etc/pihole/gravity.db', 
-                               "SELECT COUNT(*) FROM domainlist WHERE domain='youtube.com' AND type=1;"],
+                               "SELECT enabled FROM 'group' WHERE name='KidsRestricted';"],
                               capture_output=True, text=True, timeout=3)
         youtube_blocked = result.stdout.strip() == '1'
         
-        # Check Roblox directly in database
+        # Check Roblox directly in database (Roblox uses direct domain blocking)
         result = subprocess.run(['sudo', 'sqlite3', '/etc/pihole/gravity.db', 
                                "SELECT COUNT(*) FROM domainlist WHERE domain='roblox.com' AND type=1;"],
                               capture_output=True, text=True, timeout=3)
@@ -98,10 +98,16 @@ def block_domains():
     """Block YouTube and Roblox domains"""
     print("[LIVE] Blocking YouTube and Roblox...", flush=True)
     try:
-        # Block YouTube and Roblox
+        # Enable KidsRestricted group (this blocks YouTube for assigned devices)
         subprocess.run(['sudo', 'sqlite3', '/etc/pihole/gravity.db', 
-                       "INSERT OR IGNORE INTO domainlist (type, domain) VALUES (1, 'youtube.com'), (1, 'roblox.com');"],
+                       "UPDATE 'group' SET enabled=1 WHERE name='KidsRestricted';"],
                       timeout=10)
+        
+        # Block Roblox domains directly
+        subprocess.run(['sudo', 'sqlite3', '/etc/pihole/gravity.db', 
+                       "INSERT OR IGNORE INTO domainlist (type, domain) VALUES (1, 'roblox.com');"],
+                      timeout=10)
+        
         # Reload Pi-hole
         subprocess.run(['sudo', 'pihole', 'reloadlists'], timeout=10)
         print("[LIVE] Domains blocked successfully", flush=True)
@@ -112,10 +118,16 @@ def unblock_domains():
     """Unblock YouTube and Roblox domains"""
     print("[LIVE] Allowing YouTube and Roblox...", flush=True)
     try:
-        # Unblock YouTube and Roblox
+        # Disable KidsRestricted group (this unblocks YouTube for assigned devices)
         subprocess.run(['sudo', 'sqlite3', '/etc/pihole/gravity.db', 
-                       "DELETE FROM domainlist WHERE domain IN ('youtube.com', 'roblox.com') AND type=1;"],
+                       "UPDATE 'group' SET enabled=0 WHERE name='KidsRestricted';"],
                       timeout=10)
+        
+        # Unblock Roblox domains directly
+        subprocess.run(['sudo', 'sqlite3', '/etc/pihole/gravity.db', 
+                       "DELETE FROM domainlist WHERE domain='roblox.com' AND type=1;"],
+                      timeout=10)
+        
         # Reload Pi-hole
         subprocess.run(['sudo', 'pihole', 'reloadlists'], timeout=10)
         print("[LIVE] Domains unblocked successfully", flush=True)
