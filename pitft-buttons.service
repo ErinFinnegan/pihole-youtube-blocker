@@ -1,0 +1,20 @@
+[Unit]
+Description=PiTFT Buttons Daemon (GPIO only)
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/home/zerocool/pitft-venv/bin/python3 /home/zerocool/pitft_buttons.py
+WorkingDirectory=/home/zerocool
+User=root
+Group=root
+Restart=always
+RestartSec=2
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=pitft-buttons
+
+[Install]
+WantedBy=multi-user.target
+
+
