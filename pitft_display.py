@@ -2,7 +2,7 @@
 import time
 from datetime import datetime
 import sqlite3
-import json, os, sys
+import json, os, threading, signal
 import digitalio, board
 from PIL import Image, ImageDraw, ImageFont
 from adafruit_rgb_display import st7789
@@ -35,8 +35,12 @@ except Exception:
 FS = ImageFont.load_default()
 
 DB_PATH = "/etc/pihole/gravity.db"
-DB_CHECK_INTERVAL_S = 5.0
+DB_POLL_INTERVAL_S = 2.0
 UI_HINT_PATH = "/tmp/pitft_ui.json"
+
+_state_lock = threading.Lock()
+_last_blocked_state = True
+_sigusr1_flag = False
 
 
 def read_ui_hint():
@@ -48,45 +52,39 @@ def read_ui_hint():
             if isinstance(data, dict):
                 return data
     except Exception:
-        # Fall through to a default if file exists but JSON invalid
         return {"mode": "toggling", "msg": "TOGGLING..."}
     return None
 
 
-def query_kids_restricted_enabled(sqlite_connection: sqlite3.Connection) -> bool:
-    cursor = sqlite_connection.execute("SELECT enabled FROM 'group' WHERE name='KidsRestricted';")
-    row = cursor.fetchone()
-    if not row:
-        return True
+def query_kids_restricted_enabled() -> bool:
+    # Very short timeout to avoid blocking UI
     try:
-        return int(row[0]) == 1
-    except Exception:
-        return True
-
-
-def youtube_blocked_cached(state_cache: dict) -> bool:
-    now_monotonic = time.monotonic()
-    last_check = state_cache.get("last_check_ts", 0.0)
-    if now_monotonic - last_check >= DB_CHECK_INTERVAL_S or ("blocked" not in state_cache):
+        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True, timeout=0.05)
         try:
-            conn = state_cache.get("conn")
-            if conn is None:
-                conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True, timeout=1.0)
-                state_cache["conn"] = conn
-            blocked = query_kids_restricted_enabled(conn)
-            state_cache["blocked"] = blocked
-            state_cache["last_check_ts"] = now_monotonic
-        except Exception:
-            try:
-                if state_cache.get("conn") is not None:
-                    state_cache["conn"].close()
-            except Exception:
-                pass
-            state_cache["conn"] = None
-            if "blocked" not in state_cache:
-                state_cache["blocked"] = True
-            state_cache["last_check_ts"] = now_monotonic
-    return state_cache.get("blocked", True)
+            conn.execute("PRAGMA busy_timeout=50")
+            cursor = conn.execute("SELECT enabled FROM 'group' WHERE name='KidsRestricted';")
+            row = cursor.fetchone()
+            if not row:
+                return True
+            return int(row[0]) == 1
+        finally:
+            conn.close()
+    except Exception:
+        return _last_blocked_state
+
+
+def db_poll_worker():
+    global _last_blocked_state
+    while True:
+        new_state = query_kids_restricted_enabled()
+        with _state_lock:
+            _last_blocked_state = new_state
+        time.sleep(DB_POLL_INTERVAL_S)
+
+
+def get_cached_blocked() -> bool:
+    with _state_lock:
+        return _last_blocked_state
 
 
 def draw_overlay_toggling(message: str):
@@ -122,31 +120,47 @@ def draw(blocked: bool):
         pass
 
 
+def _on_sigusr1(signum, frame):
+    # Set a flag so the main loop immediately refreshes overlay/status
+    global _sigusr1_flag
+    _sigusr1_flag = True
+
+
 def main():
-    state_cache = {}
+    # Start DB poller thread
+    t = threading.Thread(target=db_poll_worker, daemon=True)
+    t.start()
+
+    # Install signal handler for instant refresh
+    signal.signal(signal.SIGUSR1, _on_sigusr1)
+
     last_drawn_state = None
-    ui_poll_interval = 0.05  # 20Hz for snappy overlay
+    ui_poll_interval = 0.01  # 100Hz for snappy overlay
     heartbeat_interval = 1.0
     last_heartbeat = 0.0
-    last_hint_present = False
+
     while True:
-        # Immediate UI hint overlay (polled frequently)
+        # If signaled, perform an immediate draw
+        if _sigusr1_flag:
+            # Clear flag first to avoid loops
+            _sigusr1_flag = False
+            hint = read_ui_hint()
+            if hint is not None:
+                draw_overlay_toggling(hint.get("msg") or "TOGGLING...")
+            else:
+                draw(get_cached_blocked())
+            # continue with normal loop
+
+        # Immediate UI hint overlay
         hint = read_ui_hint()
         if hint is not None:
             msg = hint.get("msg") or "TOGGLING..."
-            if not last_hint_present:
-                print(f"[display] overlay start: {msg}", file=sys.stderr, flush=True)
             draw_overlay_toggling(msg)
-            last_hint_present = True
             time.sleep(ui_poll_interval)
             continue
-        else:
-            if last_hint_present:
-                print("[display] overlay cleared", file=sys.stderr, flush=True)
-            last_hint_present = False
 
-        # Status rendering and heartbeat
-        blocked = youtube_blocked_cached(state_cache)
+        # Status rendering and heartbeat (uses cached DB state)
+        blocked = get_cached_blocked()
         now = time.monotonic()
         if blocked != last_drawn_state or (now - last_heartbeat) >= heartbeat_interval:
             draw(blocked)

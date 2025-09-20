@@ -1,4 +1,53 @@
-## 2025-09-20 Attempt A18
+## 2025-09-20 Attempt A23
+Goal:
+Re-test with accepted code deployed; recover from stuck yellow overlay and unresponsive buttons.
+
+Commands run / PRs:
+- Planned: Redeploy latest pitft_display.py and pitft_buttons.py, clear /tmp/pitft_ui.json, stop overlay-test, restart services
+- SSH hiccup occurred; user manually rebooted and retried
+
+Output digest / errors:
+- After reboot: PiTFT stuck on yellow "Blocking (test)", periodic black flicker, buttons unresponsive
+
+Result: ❌
+
+Next step:
+- Create a new, minimal project focused solely on responsive buttons and direct drawing (no Pi-hole calls, no IPC), run it standalone with all services stopped to isolate hardware responsiveness.
+
+## 2025-09-20 Attempt A22
+Goal:
+Make overlay fully event-driven: buttons write hint file then signal display (SIGUSR1) to draw immediately (no polling delay).
+
+Commands run / PRs:
+- Plan: Update pitft_display.py to install SIGUSR1 handler that immediately draws overlay if hint exists
+- Plan: Update pitft_buttons.py to send SIGUSR1 to tft-display.service right after writing the hint and again after clearing
+- Hold deployment until user approves
+
+Output digest / errors:
+- Pending (awaiting code acceptance and deploy)
+
+Result: ⏳ Planned
+
+Next step:
+- After acceptance, deploy to Pi and test immediate yellow overlay.
+
+## 2025-09-20 Attempt A21
+Goal:
+Prove instant overlay path end-to-end with a minimal overlay-only buttons test.
+
+Commands run / PRs:
+- Created pitft_buttons_overlay_test.py to write UI hint on button presses (no Pi-hole)
+- Stopped pitft-buttons.service and launched the test in background
+
+Output digest / errors:
+- Test started; awaiting user confirmation of immediate yellow overlay on press
+
+Result: ⏳ Pending user verification
+
+Next step:
+- If overlay is instant, re-enable buttons daemon; otherwise, lower display hint poll further
+
+## 2025-09-20 Attempt A20
 Goal:
 Fix missing yellow overlay by making IPC writes atomic and drawing overlay continuously while hint exists.
 
@@ -17,6 +66,61 @@ Result: ⏳ Pending user verification
 
 Next step:
 - User presses both buttons; confirm immediate yellow overlay. If good, reduce DB polling delay to 2s to shorten status lag.
+
+## 2025-09-20 Attempt A19
+Goal:
+Adopt event-driven UX: instant feedback on press, run yb/yu in background, ignore presses while busy.
+
+Commands run / PRs:
+- Updated pitft_buttons.py: added busy lock, background threads for yb/yu, atomic UI hint writes, and debounce handling
+- Kept display IPC overlay polling; no changes needed in display
+- Deployed buttons daemon and restarted service; tailed logs for presses
+
+Output digest / errors:
+- Buttons log shows hint writes and clears around each operation
+- Pending confirmation: overlay is instant on press; DB truth still polled in background
+
+Result: ⏳ Pending user verification
+
+Next step:
+- If overlay is instant, drop DB polling in display to 2s to reduce status lag.
+
+## 2025-09-19 Attempt A18
+Goal:
+Fix missing yellow overlay by making IPC writes atomic and drawing overlay continuously while hint exists.
+
+Commands run / PRs:
+- Updated pitft_buttons.py: atomic write to /tmp/pitft_ui.json (os.replace), added logs for write/clear
+- Updated pitft_display.py: poll hint at 20Hz, render overlay every poll while present, robust JSON fallback
+- Deployed both scripts and restarted tft-display.service and pitft-buttons.service
+- Verified unit ExecStart paths and remote script contents
+- Manually created /tmp/pitft_ui.json to test overlay trigger
+
+Output digest / errors:
+- Services active; no crashes; hint file manual creation succeeded (file present)
+- Buttons logs show triggers; awaiting confirmation that overlay appears on press
+
+Result: ⏳ Pending user verification
+
+Next step:
+- User presses both buttons; confirm immediate yellow overlay. If good, reduce DB polling delay to 2s to shorten status lag.
+
+## 2025-09-20 Attempt A20
+Goal:
+Eliminate 4–5s delay caused by `pihole reloadlists` hitting api.sh readonly var bug.
+
+Commands run / PRs:
+- On Pi, removed `sudo pihole reloadlists` from /usr/local/bin/pitft_block.sh and pitft_allow.sh
+- Verified scripts now only update SQLite and exit
+
+Output digest / errors:
+- Before/after grep confirmed removal; scripts shown without reloadlists
+- Expect immediate overlay and quicker return from helpers (no api.sh delay)
+
+Result: ✅ (change applied)
+
+Next step:
+- Press buttons; confirm overlay appears instantly and stays up only during the (now shorter) DB update. If status lag remains, lower display DB poll to 2s.
 
 ## 2025-09-19 Attempt A17
 Goal:
