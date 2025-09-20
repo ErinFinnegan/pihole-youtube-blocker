@@ -1,3 +1,35 @@
+## 2025-09-20 Attempt A26
+Goal:
+Run minimal buttons script as single instance; foreground test confirms backlight flickers instantly but draw still delayed ~5s.
+
+Commands run / PRs:
+- Killed background instances; relaunched with nohup (no output); ran in foreground with -u for live output
+
+Output digest / errors:
+- buttons-min.log shows ALLOW/BLOCK detected instantly, blink immediate, draw issued ~5.1–5.6s later
+- Foreground run restores responsiveness but still with ~4–5s draw delay
+
+Result: ❌ (delay persists; SPI draw path blockage unrelated to Pi-hole)
+
+Next step:
+- Ensure absolutely only one process holds SPI; add single-instance guard to minimal script and verify no other services are touching display; consider lowering ST7789 baudrate or disabling vsync/temp fixes if library blocks.
+
+## 2025-09-20 Attempt A25
+Goal:
+Eliminate 5s SPI draw delay by removing concurrent display writers (duplicate test processes).
+
+Commands run / PRs:
+- Observed two running instances of buttons_display_minimal.py (SPI contention)
+- Plan: kill all instances and relaunch a single instance; add single-instance guard next
+
+Output digest / errors:
+- Log shows backlight blink instant, draw delayed ~5.5s → points to SPI contention
+
+Result: ⏳ Pending after restart of a single instance
+
+Next step:
+- Kill duplicates, run one instance, re-test; if fixed, add PID/lock to prevent recurrence.
+
 ## 2025-09-20 Attempt A23
 Goal:
 Re-test with accepted code deployed; recover from stuck yellow overlay and unresponsive buttons.
@@ -13,6 +45,22 @@ Result: ❌
 
 Next step:
 - Create a new, minimal project focused solely on responsive buttons and direct drawing (no Pi-hole calls, no IPC), run it standalone with all services stopped to isolate hardware responsiveness.
+
+## 2025-09-20 Attempt A24
+Goal:
+Instrument minimal test to isolate latency: blink backlight (GPIO22) immediately on press and log timestamps around detect/blink/draw.
+
+Commands run / PRs:
+- Edited buttons_display_minimal.py: added backlight blink and timestamp logging; no Pi-hole/IPC
+- Will redeploy and run standalone (services stopped) after user keeps changes
+
+Output digest / errors:
+- Pending (awaiting deploy)
+
+Result: ⏳ Planned
+
+Next step:
+- Deploy, then press buttons and share /tmp/buttons-min.log lines to see if blink is instant and where draw latency occurs.
 
 ## 2025-09-20 Attempt A22
 Goal:
