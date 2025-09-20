@@ -1,27 +1,42 @@
-## 2025-09-19 Attempt A15
+## 2025-09-20 Attempt A18
 Goal:
-Diagnose frozen display clock and unresponsive buttons post-deployment; verify conflicts and live status.
+Fix missing yellow overlay by making IPC writes atomic and drawing overlay continuously while hint exists.
 
 Commands run / PRs:
-- ssh zerocool@pi-hole.local "systemctl is-active tft-display.service pitft-buttons.service"
-- ssh zerocool@pi-hole.local "systemctl list-unit-files | grep -E 'tft|pitft'"
-- ssh zerocool@pi-hole.local "ps aux | grep -E 'tft-|pitft-|youtube|Screen_status|working_pihole|button_test' | grep -v grep"
-- ssh zerocool@pi-hole.local "sudo sqlite3 /etc/pihole/gravity.db \"SELECT enabled FROM 'group' WHERE name='KidsRestricted';\""
-- ssh zerocool@pi-hole.local "sudo journalctl -u tft-display.service -n 30 --no-pager"
-- ssh zerocool@pi-hole.local "sudo journalctl -u pitft-buttons.service -n 30 --no-pager"
+- Updated pitft_buttons.py: atomic write to /tmp/pitft_ui.json (os.replace), added logs for write/clear
+- Updated pitft_display.py: poll hint at 20Hz, render overlay every poll while present, robust JSON fallback
+- Deployed both scripts and restarted tft-display.service and pitft-buttons.service
+- Verified unit ExecStart paths and remote script contents
+- Manually created /tmp/pitft_ui.json to test overlay trigger
 
 Output digest / errors:
-- Both services active; display PID and buttons PID running.
-- KidsRestricted=0 (Allowed) in DB.
-- Display logs: steady 3–5s sqlite reads, no errors; clock appears frozen on-screen.
-- Buttons logs: no recent entries post-reboot (no presses recorded).
-- Old units listed but disabled (tft-youtube.service, tft-pihole-buttons.service).
+- Services active; no crashes; hint file manual creation succeeded (file present)
+- Buttons logs show triggers; awaiting confirmation that overlay appears on press
 
-Result: ❌
-Buttons not registering events in logs; display showing Allowed and clock not visibly updating.
+Result: ⏳ Pending user verification
 
 Next step:
-Add explicit heartbeat timer in display loop; raise button daemon logging level on every poll edge; run a minimal GPIO probe to confirm pins live; check /dev/gpiomem contention and permissions; consider restarting only buttons service.
+- User presses both buttons; confirm immediate yellow overlay. If good, reduce DB polling delay to 2s to shorten status lag.
+
+## 2025-09-19 Attempt A17
+Goal:
+Restore instant yellow "TOGGLING…" feedback with split services via lightweight IPC.
+
+Commands run / PRs:
+- Edited pitft_buttons.py to write /tmp/pitft_ui.json with {mode:"toggling", msg}
+- Edited pitft_display.py to poll /tmp/pitft_ui.json at 10Hz and render yellow overlay
+- Removed SIGUSR1 signaling (was killing the display process); rely on polling
+- Deployed both scripts and restarted services
+
+Output digest / errors:
+- Services active after restart
+- Prior attempt with SIGUSR1 caused systemd to restart the display; removed
+- Buttons logs show daemon start; awaiting live press to verify overlay
+
+Result: ⏳ Pending verification (expected immediate yellow on press)
+
+Next step:
+- Press a button and confirm immediate yellow overlay; verify that it clears automatically after the helper completes and status reconciles within a few seconds.
 
 ## 2025-09-19 Attempt A16
 Goal:
@@ -50,6 +65,31 @@ Next step:
 - Lower redraw rate to 2s or use double-buffer/dirty-region to reduce CPU.
 - Inspect pitft-buttons service live: add temporary per-iteration debug or confirm edge polling rate; ensure no other process owns /dev/gpiomem.
 - Consider briefly stopping display service and testing buttons-only responsiveness.
+
+## 2025-09-19 Attempt A15
+Goal:
+Diagnose frozen display clock and unresponsive buttons post-deployment; verify conflicts and live status.
+
+Commands run / PRs:
+- ssh zerocool@pi-hole.local "systemctl is-active tft-display.service pitft-buttons.service"
+- ssh zerocool@pi-hole.local "systemctl list-unit-files | grep -E 'tft|pitft'"
+- ssh zerocool@pi-hole.local "ps aux | grep -E 'tft-|pitft-|youtube|Screen_status|working_pihole|button_test' | grep -v grep"
+- ssh zerocool@pi-hole.local "sudo sqlite3 /etc/pihole/gravity.db \"SELECT enabled FROM 'group' WHERE name='KidsRestricted';\""
+- ssh zerocool@pi-hole.local "sudo journalctl -u tft-display.service -n 30 --no-pager"
+- ssh zerocool@pi-hole.local "sudo journalctl -u pitft-buttons.service -n 30 --no-pager"
+
+Output digest / errors:
+- Both services active; display PID and buttons PID running.
+- KidsRestricted=0 (Allowed) in DB.
+- Display logs: steady 3–5s sqlite reads, no errors; clock appears frozen on-screen.
+- Buttons logs: no recent entries post-reboot (no presses recorded).
+- Old units listed but disabled (tft-youtube.service, tft-pihole-buttons.service).
+
+Result: ❌
+Buttons not registering events in logs; display showing Allowed and clock not visibly updating.
+
+Next step:
+Add explicit heartbeat timer in display loop; raise button daemon logging level on every poll edge; run a minimal GPIO probe to confirm pins live; check /dev/gpiomem contention and permissions; consider restarting only buttons service.
 
 ## 2025-09-19 Attempt A14
 Goal:
