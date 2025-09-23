@@ -1,3 +1,18 @@
+## 2025-09-20 Attempt A27
+Goal:
+Make feedback truly instant by using disp.fill(YELLOW) immediately on press, and profile PIL+disp.image timings in background.
+
+Commands run / PRs:
+- Edited buttons_display_minimal.py: immediate disp.fill on press; spawn thread to render text + disp.image; log create/text/image timings
+- Will restart single instance and test after user keeps changes
+
+Output digest / errors:
+- Pending (awaiting run); expectation: overlay appears instantly while background draw completes later
+
+Result: ⏳ Planned
+
+Next step:
+- Restart minimal test, press buttons, and review /tmp/buttons-min.log for fill issued vs render profile lines.
 ## 2025-09-20 Attempt A26
 Goal:
 Run minimal buttons script as single instance; foreground test confirms backlight flickers instantly but draw still delayed ~5s.
