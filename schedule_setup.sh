@@ -20,18 +20,15 @@ set -euo pipefail
 ALLOW_CMD="/usr/local/bin/yu"
 BLOCK_CMD="/usr/local/bin/yb"
 
-echo "Verifying commands..."
-if [[ ! -x "$ALLOW_CMD" ]] || [[ ! -x "$BLOCK_CMD" ]]; then
-  echo "Missing $ALLOW_CMD or $BLOCK_CMD. Create them first." >&2
-  exit 1
-fi
-
-echo "Creating helper scripts in /usr/local/sbin ..."
+echo "Creating helper scripts in /usr/local/sbin (direct sqlite + FTL reload) ..."
 sudo tee /usr/local/sbin/pitft_cron_allow >/dev/null <<EOF
 #!/usr/bin/env bash
 set -e
 date '+%F %T cron allow' >> /var/log/pihole-cron.log
-"$ALLOW_CMD" || true
+# Disable KidsRestricted group (allow YouTube)
+sqlite3 /etc/pihole/gravity.db "UPDATE 'group' SET enabled=0 WHERE name='KidsRestricted';" || true
+# Reload FTL to apply without invoking api.sh
+systemctl reload pihole-FTL 2>/dev/null || systemctl restart pihole-FTL 2>/dev/null || true
 # Nudge display to refresh immediately if service is running
 systemctl kill --signal=SIGUSR1 tft-youtube.service 2>/dev/null || true
 systemctl kill --signal=SIGUSR1 tft-display.service 2>/dev/null || true
@@ -41,7 +38,10 @@ sudo tee /usr/local/sbin/pitft_cron_block >/dev/null <<EOF
 #!/usr/bin/env bash
 set -e
 date '+%F %T cron block' >> /var/log/pihole-cron.log
-"$BLOCK_CMD" || true
+# Enable KidsRestricted group (block YouTube)
+sqlite3 /etc/pihole/gravity.db "UPDATE 'group' SET enabled=1 WHERE name='KidsRestricted';" || true
+# Reload FTL to apply without invoking api.sh
+systemctl reload pihole-FTL 2>/dev/null || systemctl restart pihole-FTL 2>/dev/null || true
 # Nudge display to refresh immediately if service is running
 systemctl kill --signal=SIGUSR1 tft-youtube.service 2>/dev/null || true
 systemctl kill --signal=SIGUSR1 tft-display.service 2>/dev/null || true
