@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Enable KidsRestricted group (YouTube blocked)
-sudo sqlite3 /etc/pihole/gravity.db "UPDATE 'group' SET enabled=1 WHERE name='KidsRestricted';"
+# Enable KidsRestricted group (YouTube blocked) with busy-timeout + retries (avoid pihole CLI)
+SQLITE=(sudo sqlite3 -cmd "PRAGMA busy_timeout=5000;")
+for i in {1..5}; do
+  "${SQLITE[@]}" /etc/pihole/gravity.db "UPDATE 'group' SET enabled=1 WHERE name='KidsRestricted';" && break || sleep 1
+done
 
-# Optionally block Roblox via domainlist
-# sudo sqlite3 /etc/pihole/gravity.db "INSERT OR IGNORE INTO domainlist (type, domain) VALUES (1, 'roblox.com');"
-
-sudo pihole reloadlists || true
+# Reload FTL so changes take effect promptly
+sudo systemctl reload pihole-FTL 2>/dev/null || sudo systemctl restart pihole-FTL 2>/dev/null || true
 exit 0
 
 
