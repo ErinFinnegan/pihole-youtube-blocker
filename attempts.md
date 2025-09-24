@@ -1,3 +1,21 @@
+## 2025-09-24 Attempt A30
+Goal:
+Make cron-based YouTube blocking reliable and ensure immediate screen updates from scheduled actions.
+
+Commands run / PRs:
+- Updated `schedule_setup.sh` helpers to avoid Pi-hole CLI (api.sh readonly var issue): use direct sqlite `UPDATE` on `KidsRestricted`, reload/restart FTL, and signal the display service (SIGUSR1).
+- Added sqlite `PRAGMA busy_timeout` and a short retry loop to handle transient "database is locked".
+- Cleaned crontab to keep only `pitft_cron_allow` (12:00) and `pitft_cron_block` (21:00).
+
+Output digest / errors:
+- Manual tests succeeded: DB toggled as expected (1 after block, 0 after allow), TFT updated via service.
+- Extra `5000` printed by sqlite before results; benign (busy_timeout echo).
+
+Result: ✅ Success (robust scheduling + immediate display refresh).
+
+Next step:
+- Let cron fire at 12:00/21:00 and verify on-device. Optionally, use sqlite `-noheader -batch` if you want cleaner CLI output.
+
 ## 2025-09-24 Attempt A29
 Goal:
 Verify end-to-end responsiveness with async actions and busy lock; confirm that display updates instantly on press and returns to Ready, and enable visible logging to stdout.
