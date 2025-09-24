@@ -21,12 +21,15 @@ ALLOW_CMD="/usr/local/bin/yu"
 BLOCK_CMD="/usr/local/bin/yb"
 
 echo "Creating helper scripts in /usr/local/sbin (direct sqlite + FTL reload) ..."
-sudo tee /usr/local/sbin/pitft_cron_allow >/dev/null <<EOF
+sudo tee /usr/local/sbin/pitft_cron_allow >/dev/null <<'EOF'
 #!/usr/bin/env bash
 set -e
 date '+%F %T cron allow' >> /var/log/pihole-cron.log
-# Disable KidsRestricted group (allow YouTube)
-sqlite3 /etc/pihole/gravity.db "UPDATE 'group' SET enabled=0 WHERE name='KidsRestricted';" || true
+# Disable KidsRestricted group (allow YouTube) with busy-timeout + retries
+SQLITE_CMD=(sqlite3 -cmd "PRAGMA busy_timeout=5000;")
+for i in {1..5}; do
+  "${SQLITE_CMD[@]}" /etc/pihole/gravity.db "UPDATE 'group' SET enabled=0 WHERE name='KidsRestricted';" && break || sleep 1
+done
 # Reload FTL to apply without invoking api.sh
 systemctl reload pihole-FTL 2>/dev/null || systemctl restart pihole-FTL 2>/dev/null || true
 # Nudge display to refresh immediately if service is running
@@ -34,12 +37,15 @@ systemctl kill --signal=SIGUSR1 tft-youtube.service 2>/dev/null || true
 systemctl kill --signal=SIGUSR1 tft-display.service 2>/dev/null || true
 EOF
 
-sudo tee /usr/local/sbin/pitft_cron_block >/dev/null <<EOF
+sudo tee /usr/local/sbin/pitft_cron_block >/dev/null <<'EOF'
 #!/usr/bin/env bash
 set -e
 date '+%F %T cron block' >> /var/log/pihole-cron.log
-# Enable KidsRestricted group (block YouTube)
-sqlite3 /etc/pihole/gravity.db "UPDATE 'group' SET enabled=1 WHERE name='KidsRestricted';" || true
+# Enable KidsRestricted group (block YouTube) with busy-timeout + retries
+SQLITE_CMD=(sqlite3 -cmd "PRAGMA busy_timeout=5000;")
+for i in {1..5}; do
+  "${SQLITE_CMD[@]}" /etc/pihole/gravity.db "UPDATE 'group' SET enabled=1 WHERE name='KidsRestricted';" && break || sleep 1
+done
 # Reload FTL to apply without invoking api.sh
 systemctl reload pihole-FTL 2>/dev/null || systemctl restart pihole-FTL 2>/dev/null || true
 # Nudge display to refresh immediately if service is running
