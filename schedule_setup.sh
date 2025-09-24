@@ -32,6 +32,9 @@ sudo tee /usr/local/sbin/pitft_cron_allow >/dev/null <<EOF
 set -e
 date '+%F %T cron allow' >> /var/log/pihole-cron.log
 "$ALLOW_CMD" || true
+# Nudge display to refresh immediately if service is running
+systemctl kill --signal=SIGUSR1 tft-youtube.service 2>/dev/null || true
+systemctl kill --signal=SIGUSR1 tft-display.service 2>/dev/null || true
 EOF
 
 sudo tee /usr/local/sbin/pitft_cron_block >/dev/null <<EOF
@@ -39,6 +42,9 @@ sudo tee /usr/local/sbin/pitft_cron_block >/dev/null <<EOF
 set -e
 date '+%F %T cron block' >> /var/log/pihole-cron.log
 "$BLOCK_CMD" || true
+# Nudge display to refresh immediately if service is running
+systemctl kill --signal=SIGUSR1 tft-youtube.service 2>/dev/null || true
+systemctl kill --signal=SIGUSR1 tft-display.service 2>/dev/null || true
 EOF
 
 sudo chmod +x /usr/local/sbin/pitft_cron_{allow,block}
