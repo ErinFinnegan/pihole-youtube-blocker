@@ -1,3 +1,39 @@
+## 2025-09-24 Attempt A29
+Goal:
+Verify end-to-end responsiveness with async actions and busy lock; confirm that display updates instantly on press and returns to Ready, and enable visible logging to stdout.
+
+Commands run / PRs:
+- Edited `buttons_display_minimal.py` to print logs to stdout in addition to `/tmp/buttons-min.log`.
+- Deployed to Pi (`~/pi-tft/`), stopped TFT/button services, ran in foreground with `sudo -E python3`.
+- Used a second terminal to tail `/tmp/buttons-min.log` (optional once stdout logging added).
+
+Output digest / errors:
+- Buttons super-responsive; on press shows “Blocking…/Allowing…”, then “Blocked/Allowed”, then “Ready”.
+- No errors after `_render_worker` globals fix.
+- Log file present; stdout now mirrors log messages when running in foreground.
+
+Result: ✅ Success (UX is immediate; concurrency guarded; logs visible on-screen).
+
+Next step:
+- If desired, create a simple systemd unit to run this minimal script as a test service, or merge the async/busy patterns back into the full display daemon.
+
+## 2025-09-23 Attempt A28
+Goal:
+Wire minimal buttons script to Pi-hole actions cleanly: run `pitft_block.sh`/`pitft_allow.sh` asynchronously, add a busy lock to avoid overlapping actions, thread-safe render scheduling, and fix a threading bug seen on first run.
+
+Commands run / PRs:
+- Edited `buttons_display_minimal.py`: async subprocess calls to helpers, `_action_lock` busy guard, background `_render_worker` with correct `global` declarations, single-instance file lock, logging to `/tmp/buttons-min.log`, auto-return to "Ready".
+- Deployed to Pi in `~/pi-tft`; stopped conflicting services; ran in foreground with `sudo -E python3`.
+
+Output digest / errors:
+- Initial crash: `UnboundLocalError` in `_render_worker` (missing `global` for `_latest_title/_latest_bg/_render_version`). Fixed and redeployed.
+- System Python 3.11 confirmed on Pi; packages installed from piwheels. `.local` SSH host works; IP fallback available.
+
+Result: ✅ Script launches; expect on press: "Blocking.../Allowing..." → "Blocked/Allowed" → auto "Ready". Mid-action presses show "Busy...".
+
+Next step:
+- Live test both buttons and tail `/tmp/buttons-min.log` for timing. If draw latency persists, ensure no other service holds SPI and consider lowering ST7789 baudrate.
+
 ## 2025-09-20 Attempt A27
 Goal:
 Make feedback truly instant by using disp.fill(YELLOW) immediately on press, and profile PIL+disp.image timings in background.

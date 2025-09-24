@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import time, os, threading
+import subprocess
 import digitalio, board
 import RPi.GPIO as GPIO
 from PIL import Image, ImageDraw, ImageFont
@@ -61,6 +62,7 @@ last_ts = {BTN_BLOCK: 0.0, BTN_ALLOW: 0.0}
 DEBOUNCE_S = 0.15
 
 LOG_PATH = "/tmp/buttons-min.log"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Render thread state
 _render_lock = threading.Lock()
@@ -68,12 +70,18 @@ _render_thread = None
 _latest_title = None
 _latest_bg = None
 _render_version = 0
+_action_lock = threading.Lock()
 
 
 def log_line(msg: str):
+    ts = time.strftime('%H:%M:%S')
     try:
         with open(LOG_PATH, "a") as f:
-            f.write(f"{time.strftime('%H:%M:%S')} {msg}\n")
+            f.write(f"{ts} {msg}\n")
+    except Exception:
+        pass
+    try:
+        print(f"{ts} {msg}", flush=True)
     except Exception:
         pass
 
@@ -104,7 +112,7 @@ def render_and_draw_once(title: str, bg):
 
 
 def _render_worker(start_version: int):
-    global _render_thread
+    global _render_thread, _latest_title, _latest_bg, _render_version
     while True:
         with _render_lock:
             version = _render_version
@@ -141,6 +149,66 @@ def blink_backlight():
     backlight.value = True
 
 
+def _run_script(script_name: str) -> tuple[int, str, str]:
+    script_path = os.path.join(SCRIPT_DIR, script_name)
+    try:
+        proc = subprocess.run([script_path], capture_output=True, text=True)
+        return proc.returncode, proc.stdout, proc.stderr
+    except Exception as e:
+        return 1, "", f"exception: {e}"
+
+
+def _perform_action(kind: str):
+    start_ts = time.time()
+    try:
+        if kind == "block":
+            action_title = "Blocking..."
+            success_title = "Blocked"
+            success_bg = RED
+            script = "pitft_block.sh"
+        else:
+            action_title = "Allowing..."
+            success_title = "Allowed"
+            success_bg = GREEN
+            script = "pitft_allow.sh"
+
+        blink_backlight()
+        disp_fill(YELLOW)
+        schedule_render(action_title, YELLOW)
+        log_line(f"{kind.upper()} action started")
+
+        rc, out, err = _run_script(script)
+        log_line(f"{kind.upper()} script rc={rc} out_len={len(out)} err_len={len(err)}")
+
+        if rc == 0:
+            disp_fill(success_bg)
+            schedule_render(success_title, success_bg)
+        else:
+            disp_fill(RED)
+            fail_title = "Block failed" if kind == "block" else "Allow failed"
+            schedule_render(fail_title, RED)
+
+        # Briefly show result, then return to Ready
+        time.sleep(1.2)
+        schedule_render("Ready", GREEN)
+        log_line(f"{kind.upper()} action finished in {(time.time()-start_ts)*1000:.0f}ms")
+    finally:
+        try:
+            _action_lock.release()
+        except RuntimeError:
+            pass
+
+
+def try_start_action(kind: str):
+    if not _action_lock.acquire(blocking=False):
+        log_line("action skipped: busy")
+        blink_backlight()
+        schedule_render("Busy...", YELLOW)
+        return
+    t = threading.Thread(target=_perform_action, args=(kind,), daemon=True)
+    t.start()
+
+
 def main():
     schedule_render("Ready", GREEN)
     log_line("service started")
@@ -153,11 +221,7 @@ def main():
                     last_ts[BTN_BLOCK] = now
                     t0 = time.time()
                     log_line("BLOCK press detected")
-                    blink_backlight()
-                    log_line("BLOCK backlight blinked")
-                    disp_fill(YELLOW)
-                    log_line(f"BLOCK fill issued ({(time.time()-t0)*1000:.1f}ms since detect)")
-                    schedule_render("BLOCK pressed", YELLOW)
+                    try_start_action("block")
                 last[BTN_BLOCK] = cur_b
 
             cur_a = GPIO.input(BTN_ALLOW)
@@ -166,11 +230,7 @@ def main():
                     last_ts[BTN_ALLOW] = now
                     t0 = time.time()
                     log_line("ALLOW press detected")
-                    blink_backlight()
-                    log_line("ALLOW backlight blinked")
-                    disp_fill(YELLOW)
-                    log_line(f"ALLOW fill issued ({(time.time()-t0)*1000:.1f}ms since detect)")
-                    schedule_render("ALLOW pressed", YELLOW)
+                    try_start_action("allow")
                 last[BTN_ALLOW] = cur_a
 
             time.sleep(0.01)
