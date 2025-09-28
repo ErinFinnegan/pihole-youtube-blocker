@@ -1,3 +1,57 @@
+## 2025-09-28 Attempt A33
+Goal:
+Finalize Roblox blocking for KidsRestricted and verify across iPad and Mac.
+
+Actions:
+- Added group-scoped regex rules for Roblox: `^(.+\.)*roblox\.com$`, `^(.+\.)*rbxcdn\.com$`, `^(.+\.)*rbxtrk\.com$` via SQL file and applied to `KidsRestricted`.
+- Removed duplicate Default group mappings for any roblox-related domainlist entries.
+- Reloaded/restarted FTL after changes.
+
+Observations:
+- After removing Default mappings, Roblox is blocked on both the iPad and this Mac (both in KidsRestricted).
+- Busy DB windows handled using sqlite `.timeout 5000` when applying changes.
+
+Result: ✅ Roblox blocking enforced for KidsRestricted across devices.
+
+Next step:
+- Monitor for any missed Roblox domains in FTL logs; add regex for additional roblox CDNs if needed.
+
+## 2025-09-28 Attempt A32
+Goal:
+Fix iPad client mapping and verify enforcement; capture current state before Roblox blocking work.
+
+Actions:
+- Corrected iPad hardware/MAC address format in Pi-hole GUI client mapping (added missing colon), ensured it’s assigned to `KidsRestricted`.
+- Confirmed iPad privacy settings: Private Relay off; Private Wi‑Fi Address off; renewed lease/reconnect.
+- Retested on iPad after reset.
+
+Observations:
+- YouTube: initially slowed to load, then confirmed BLOCKED (new videos won’t load).
+- Roblox: still accessible on the iPad.
+
+Result: ✅ YouTube blocked on iPad; ❌ Roblox still allowed.
+
+Next step:
+- Proceed to targeted Roblox blocking for the iPad’s group (domains/regex), verify in FTL query log.
+
+## 2025-09-24 Attempt A31
+Goal:
+Ensure buttons and scheduler work concurrently using unified, reliable DB updates; publish branch.
+
+Commands run / PRs:
+- Hardened `pitft_block.sh` and `pitft_allow.sh` to use sqlite `PRAGMA busy_timeout` + retries and FTL reload (no Pi-hole CLI).
+- Installed hardened helpers on the Pi and enabled `pitft-buttons.service` alongside `tft-youtube.service`.
+- Pushed branch `2025-09-24-archive-schedule` to origin.
+
+Output digest / errors:
+- Manual button presses and cron helpers both toggle DB and update the TFT promptly.
+- No `api.sh readonly variable` errors; no persistent DB lock issues after retries.
+
+Result: ✅ Buttons + schedule coexist; branch published.
+
+Next step:
+- Optionally open a PR to merge; consider adding a simple watchdog cron that verifies expected state and logs if drift is detected.
+
 ## 2025-09-24 Attempt A30
 Goal:
 Make cron-based YouTube blocking reliable and ensure immediate screen updates from scheduled actions.
