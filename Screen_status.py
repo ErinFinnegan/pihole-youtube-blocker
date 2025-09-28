@@ -120,20 +120,7 @@ def roblox_blocked() -> bool:
     """Roblox blocking follows the KidsRestricted group state (same as YouTube)."""
     return youtube_blocked()
 
-def scratch_accessible() -> bool:
-    """Check if Scratch is accessible by testing a Scratch domain"""
-    try:
-        result = subprocess.run(
-            ["pihole", "-q", "scratch.mit.edu"], 
-            capture_output=True, 
-            text=True, 
-            timeout=5
-        )
-        # Check for various indicators that the domain is accessible
-        output = result.stdout.lower()
-        return ("ok" in output or "allowed" in output or "not blocked" in output) and "blocked" not in output
-    except Exception:
-        return False  # fail safe: assume blocked
+# Scratch is always allowed by policy; avoid any runtime DNS checks
 
 def draw(blocked: bool, show_button_feedback=False, show_status_confirmation=False):
     global button_pressed, button_press_time, status_change_confirmed, status_change_time
@@ -141,7 +128,6 @@ def draw(blocked: bool, show_button_feedback=False, show_status_confirmation=Fal
     # Get current status of all services
     youtube_status = blocked
     roblox_status = roblox_blocked()
-    scratch_status = scratch_accessible()
     
     # Determine background color and title
     if show_button_feedback:
@@ -202,15 +188,7 @@ def draw(blocked: bool, show_button_feedback=False, show_status_confirmation=Fal
             rw, rh = d.textsize(roblox_text, font=FB)
         d.text(((IMG_W - rw)//2, 50), roblox_text, font=FB, fill=WHITE)
         
-        # Show Scratch status
-        scratch_text = "Scratch: " + ("OK" if scratch_status else "BLOCKED!")
-        scratch_color = WHITE if scratch_status else YELLOW
-        try:
-            bbox = d.textbbox((0, 0), scratch_text, font=FB)
-            sw, sh = bbox[2] - bbox[0], bbox[3] - bbox[1]
-        except AttributeError:
-            sw, sh = d.textsize(scratch_text, font=FB)
-        d.text(((IMG_W - sw)//2, 70), scratch_text, font=FB, fill=scratch_color)
+        # (Scratch line removed; Scratch is allowed by policy)
     
     # Clock at bottom
     d.text((6, IMG_H-18), datetime.now().strftime("%Y-%m-%d %H:%M:%S"), font=FS, fill=WHITE)
@@ -274,7 +252,7 @@ def main():
         else:
             draw(blocked)  # normal display
         
-        time.sleep(0.5)  # Faster refresh for better responsiveness
+        time.sleep(0.2)  # Snappier refresh for button feedback without heavy CPU
 
 if __name__ == "__main__":
     main()
