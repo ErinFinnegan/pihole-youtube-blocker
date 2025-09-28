@@ -193,8 +193,8 @@ def draw(blocked: bool, show_button_feedback=False, show_status_confirmation=Fal
     
     # Add status indicators for other services (only in normal display mode)
     if not show_button_feedback and not show_status_confirmation:
-        # Show Roblox status
-        roblox_text = "Roblox: " + ("BLOCKED" if roblox_status else "ALLOWED")
+        # Show Roblox status (mirror KidsRestricted state for consistency)
+        roblox_text = "Roblox: " + ("BLOCKED" if youtube_status else "ALLOWED")
         try:
             bbox = d.textbbox((0, 0), roblox_text, font=FB)
             rw, rh = bbox[2] - bbox[0], bbox[3] - bbox[1]
