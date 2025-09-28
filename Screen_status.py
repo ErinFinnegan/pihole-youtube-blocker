@@ -68,14 +68,14 @@ def block_youtube(_ch=None):
     button_pressed = "blocking"
     button_press_time = time.time()
     # Run the actual command in a separate thread to avoid blocking
-    threading.Thread(target=lambda: subprocess.call(["/usr/local/bin/yb"]), daemon=True).start()
+    threading.Thread(target=lambda: subprocess.call(["/bin/bash", "/usr/local/bin/pitft_block.sh"]), daemon=True).start()
 
 def allow_youtube(_ch=None):
     global button_pressed, button_press_time
     button_pressed = "allowing"
     button_press_time = time.time()
     # Run the actual command in a separate thread to avoid blocking
-    threading.Thread(target=lambda: subprocess.call(["/usr/local/bin/yu"]), daemon=True).start()
+    threading.Thread(target=lambda: subprocess.call(["/bin/bash", "/usr/local/bin/pitft_allow.sh"]), daemon=True).start()
 
 # Button state tracking for polling
 button_states = {BTN_BLOCK: True, BTN_ALLOW: True}  # True = not pressed (pulled up)
@@ -117,17 +117,8 @@ def youtube_blocked() -> bool:
         return True  # fail safe: assume blocked
 
 def roblox_blocked() -> bool:
-    """Check if Roblox is blocked by testing a Roblox domain"""
-    try:
-        result = subprocess.run(
-            ["pihole", "-q", "roblox.com"], 
-            capture_output=True, 
-            text=True, 
-            timeout=5
-        )
-        return "BLOCKED" in result.stdout
-    except Exception:
-        return True  # fail safe: assume blocked
+    """Roblox blocking follows the KidsRestricted group state (same as YouTube)."""
+    return youtube_blocked()
 
 def scratch_accessible() -> bool:
     """Check if Scratch is accessible by testing a Scratch domain"""
