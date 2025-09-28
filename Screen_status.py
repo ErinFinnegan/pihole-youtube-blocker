@@ -148,6 +148,9 @@ def draw(blocked: bool, show_button_feedback=False, show_status_confirmation=Fal
     
     img = Image.new("RGB", (IMG_W, IMG_H), color=bg_color)
     d = ImageDraw.Draw(img)
+
+    # Improve contrast: black text on yellow, white otherwise
+    text_color = BLACK if bg_color == YELLOW else WHITE
     
     # Centered title (new Pillow uses textbbox, fallback textsize)
     try:
@@ -155,7 +158,7 @@ def draw(blocked: bool, show_button_feedback=False, show_status_confirmation=Fal
         tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
     except AttributeError:
         tw, th = d.textsize(title, font=FB)
-    d.text(((IMG_W - tw)//2, 22), title, font=FB, fill=WHITE)
+    d.text(((IMG_W - tw)//2, 22), title, font=FB, fill=text_color)
     
     # Add dots for button feedback
     if show_button_feedback:
@@ -165,7 +168,7 @@ def draw(blocked: bool, show_button_feedback=False, show_status_confirmation=Fal
             dw, dh = bbox[2] - bbox[0], bbox[3] - bbox[1]
         except AttributeError:
             dw, dh = d.textsize(dots, font=FS)
-        d.text(((IMG_W - dw)//2, 50), dots, font=FS, fill=WHITE)
+        d.text(((IMG_W - dw)//2, 50), dots, font=FS, fill=text_color)
     
     # Add confirmation message
     if show_status_confirmation:
@@ -175,7 +178,7 @@ def draw(blocked: bool, show_button_feedback=False, show_status_confirmation=Fal
             cw, ch = bbox[2] - bbox[0], bbox[3] - bbox[1]
         except AttributeError:
             cw, ch = d.textsize(confirm_msg, font=FS)
-        d.text(((IMG_W - cw)//2, 50), confirm_msg, font=FS, fill=WHITE)
+        d.text(((IMG_W - cw)//2, 50), confirm_msg, font=FS, fill=text_color)
     
     # Add status indicators for other services (only in normal display mode)
     if not show_button_feedback and not show_status_confirmation:
