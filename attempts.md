@@ -1,3 +1,22 @@
+## 2025-09-28 Attempt A34
+Goal:
+Capture wrap-up state: one-time 8:30 PM block scheduled; TFT UI tweaks; next steps for Mac YouTube DNS.
+
+Actions:
+- Added one-shot root cron: `30 20 <today> * /usr/local/sbin/pitft_cron_block` (blocks YouTube/Roblox at 8:30 PM; sends SIGUSR1 to refresh display).
+- Deployed TFT updates in `tft-youtube-status-fixed.py`: black text on yellow, removed Scratch line, Roblox label mirrors KidsRestricted, kept snappy refresh.
+- Verified buttons remain responsive (no 5s delay) and schedule + buttons coexist.
+
+Observations:
+- AppleTV/iPad: YouTube and Roblox blocked as expected (KidsRestricted enforced).
+- Mac: Roblox blocked; YouTube still allowed—likely browser Secure DNS/DoH or DNS not pointing at Pi-hole.
+
+Result: ✅ Operational; timed block set for tonight; UI legible and responsive.
+
+Next step:
+- On Mac: turn off browser Secure DNS (Chrome/Firefox), set Wi‑Fi DNS to `192.168.1.167`, confirm client in KidsRestricted, then verify `dig +short youtube.com` returns `0.0.0.0`.
+- After overnight validation, merge `2025-09-28-roblox-blocking` branch.
+
 ## 2025-09-28 Attempt A33
 Goal:
 Finalize Roblox blocking for KidsRestricted and verify across iPad and Mac.
