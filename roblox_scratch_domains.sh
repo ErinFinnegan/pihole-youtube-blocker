@@ -9,7 +9,7 @@ echo ""
 
 # Function to add domains to blacklist
 block_domains() {
-    echo "🚫 Blocking Roblox domains..."
+    echo "🚫 Blocking Roblox and Playhop domains..."
     
     # Core Roblox domains
     pihole -b roblox.com
@@ -62,7 +62,13 @@ block_domains() {
     pihole -b users.roblox.com
     pihole -b voice.roblox.com
     
-    echo "✅ Roblox domains blocked successfully!"
+    # Playhop domains
+    pihole -b playhop.com
+    pihole -b www.playhop.com
+    pihole -b api.playhop.com
+    pihole -b cdn.playhop.com
+    
+    echo "✅ Roblox and Playhop domains blocked successfully!"
 }
 
 # Function to whitelist Scratch domains

@@ -8,7 +8,7 @@ echo "Creating enhanced blocking scripts for YouTube and Roblox..."
 # Enhanced YouTube Block Script (yb)
 cat > /tmp/yb_enhanced << 'EOF'
 #!/bin/bash
-echo "Blocking YouTube and Roblox..."
+echo "Blocking YouTube, Roblox, and Playhop..."
 
 # Update the database to block YouTube
 sudo sqlite3 /etc/pihole/gravity.db "UPDATE 'group' SET enabled=1 WHERE name='KidsRestricted';"
@@ -26,6 +26,9 @@ pihole deny locale.roblox.com localization.roblox.com notifications.roblox.com
 pihole deny publish.roblox.com realtime.roblox.com share.roblox.com
 pihole deny textfilter.roblox.com trades.roblox.com translation.roblox.com
 pihole deny users.roblox.com voice.roblox.com
+
+# Block Playhop domains
+pihole deny playhop.com www.playhop.com api.playhop.com cdn.playhop.com
 
 # Ensure Scratch domains remain whitelisted
 pihole allow scratch.mit.edu api.scratch.mit.edu projects.scratch.mit.edu
@@ -45,13 +48,13 @@ sleep 2
 # Signal display service to refresh immediately
 sudo systemctl kill --signal=SIGUSR1 tft-youtube.service 2>/dev/null || true
 
-echo "YouTube and Roblox blocked, Scratch whitelisted, and display refreshed!"
+echo "YouTube, Roblox, and Playhop blocked; Scratch whitelisted; display refreshed!"
 EOF
 
 # Enhanced YouTube Allow Script (yu)
 cat > /tmp/yu_enhanced << 'EOF'
 #!/bin/bash
-echo "Allowing YouTube and Roblox..."
+echo "Allowing YouTube, Roblox, and Playhop..."
 
 # Update the database to allow YouTube
 sudo sqlite3 /etc/pihole/gravity.db "UPDATE 'group' SET enabled=0 WHERE name='KidsRestricted';"
@@ -69,6 +72,9 @@ pihole allow locale.roblox.com localization.roblox.com notifications.roblox.com
 pihole allow publish.roblox.com realtime.roblox.com share.roblox.com
 pihole allow textfilter.roblox.com trades.roblox.com translation.roblox.com
 pihole allow users.roblox.com voice.roblox.com
+
+# Unblock Playhop domains
+pihole allow playhop.com www.playhop.com api.playhop.com cdn.playhop.com
 
 # Ensure Scratch domains remain whitelisted
 pihole allow scratch.mit.edu api.scratch.mit.edu projects.scratch.mit.edu
@@ -125,6 +131,10 @@ echo "Testing roblox.com:"
 sudo pihole -q roblox.com
 
 echo ""
+echo "Testing playhop.com:"
+sudo pihole -q playhop.com
+
+echo ""
 echo "Testing scratch.mit.edu:"
 sudo pihole -q scratch.mit.edu
 
@@ -136,7 +146,7 @@ EOF
 # Roblox-only block script (rb)
 cat > /tmp/rb_enhanced << 'EOF'
 #!/bin/bash
-echo "Blocking Roblox only (YouTube status unchanged)..."
+echo "Blocking Roblox and Playhop only (YouTube status unchanged)..."
 
 # Block Roblox domains
 pihole deny roblox.com rbxcdn.com rbxtrk.com roblox.plus
@@ -151,6 +161,9 @@ pihole deny locale.roblox.com localization.roblox.com notifications.roblox.com
 pihole deny publish.roblox.com realtime.roblox.com share.roblox.com
 pihole deny textfilter.roblox.com trades.roblox.com translation.roblox.com
 pihole deny users.roblox.com voice.roblox.com
+
+# Block Playhop domains
+pihole deny playhop.com www.playhop.com api.playhop.com cdn.playhop.com
 
 # Ensure Scratch domains remain whitelisted
 pihole allow scratch.mit.edu api.scratch.mit.edu projects.scratch.mit.edu
@@ -176,7 +189,7 @@ EOF
 # Roblox-only allow script (ru)
 cat > /tmp/ru_enhanced << 'EOF'
 #!/bin/bash
-echo "Allowing Roblox only (YouTube status unchanged)..."
+echo "Allowing Roblox and Playhop only (YouTube status unchanged)..."
 
 # Unblock Roblox domains
 pihole allow roblox.com rbxcdn.com rbxtrk.com roblox.plus
@@ -191,6 +204,9 @@ pihole allow locale.roblox.com localization.roblox.com notifications.roblox.com
 pihole allow publish.roblox.com realtime.roblox.com share.roblox.com
 pihole allow textfilter.roblox.com trades.roblox.com translation.roblox.com
 pihole allow users.roblox.com voice.roblox.com
+
+# Unblock Playhop domains
+pihole allow playhop.com www.playhop.com api.playhop.com cdn.playhop.com
 
 # Ensure Scratch domains remain whitelisted
 pihole allow scratch.mit.edu api.scratch.mit.edu projects.scratch.mit.edu

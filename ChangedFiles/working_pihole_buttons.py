@@ -73,8 +73,13 @@ def block_youtube_roblox():
         "ecsv2.roblox.com", "ncs.roblox.com", "client-telemetry.roblox.com"
     ]
     
+    # Block Playhop domains
+    playhop_domains = [
+        "playhop.com", "www.playhop.com", "api.playhop.com", "cdn.playhop.com"
+    ]
+    
     # Add to blacklist (type 1)
-    for domain in youtube_domains + roblox_domains:
+    for domain in youtube_domains + roblox_domains + playhop_domains:
         subprocess.run([
             "sudo", "sqlite3", "/etc/pihole/gravity.db",
             f"INSERT OR IGNORE INTO domainlist (type, domain) VALUES (1, '{domain}');"
@@ -110,7 +115,9 @@ def allow_youtube_roblox():
         "ecsv2.roblox.com", "ncs.roblox.com", "client-telemetry.roblox.com"
     ]
     
-    for domain in youtube_domains + roblox_domains:
+    for domain in youtube_domains + roblox_domains + [
+        "playhop.com", "www.playhop.com", "api.playhop.com", "cdn.playhop.com"
+    ]:
         subprocess.run([
             "sudo", "sqlite3", "/etc/pihole/gravity.db",
             f"DELETE FROM domainlist WHERE domain='{domain}' AND type=1;"
