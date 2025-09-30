@@ -84,6 +84,12 @@ def block_youtube_roblox():
             "sudo", "sqlite3", "/etc/pihole/gravity.db",
             f"INSERT OR IGNORE INTO domainlist (type, domain) VALUES (1, '{domain}');"
         ], check=False)
+
+    # Add regex to block all subdomains of playhop.com (type 3)
+    subprocess.run([
+        "sudo", "sqlite3", "/etc/pihole/gravity.db",
+        "INSERT OR IGNORE INTO domainlist (type, domain) VALUES (3, '(^|\\.)playhop\\.com$');"
+    ], check=False)
     
     # Ensure Scratch domains are whitelisted (type 0)
     scratch_domains = [
@@ -122,6 +128,12 @@ def allow_youtube_roblox():
             "sudo", "sqlite3", "/etc/pihole/gravity.db",
             f"DELETE FROM domainlist WHERE domain='{domain}' AND type=1;"
         ], check=False)
+
+    # Remove regex for playhop.com subdomains (type 3)
+    subprocess.run([
+        "sudo", "sqlite3", "/etc/pihole/gravity.db",
+        "DELETE FROM domainlist WHERE type=3 AND domain='(^|\\.)playhop\\.com$';"
+    ], check=False)
     
     # Keep Scratch whitelisted
     scratch_domains = [

@@ -29,6 +29,7 @@ pihole deny users.roblox.com voice.roblox.com
 
 # Block Playhop domains
 pihole deny playhop.com www.playhop.com api.playhop.com cdn.playhop.com
+sudo sqlite3 /etc/pihole/gravity.db "INSERT OR IGNORE INTO domainlist (type, domain) VALUES (3, '(^|\\.)playhop\\.com$');"
 
 # Ensure Scratch domains remain whitelisted
 pihole allow scratch.mit.edu api.scratch.mit.edu projects.scratch.mit.edu
@@ -75,6 +76,7 @@ pihole allow users.roblox.com voice.roblox.com
 
 # Unblock Playhop domains
 pihole allow playhop.com www.playhop.com api.playhop.com cdn.playhop.com
+sudo sqlite3 /etc/pihole/gravity.db "DELETE FROM domainlist WHERE type=3 AND domain='(^|\\.)playhop\\.com$';"
 
 # Ensure Scratch domains remain whitelisted
 pihole allow scratch.mit.edu api.scratch.mit.edu projects.scratch.mit.edu

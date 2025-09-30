@@ -67,6 +67,8 @@ block_domains() {
     pihole -b www.playhop.com
     pihole -b api.playhop.com
     pihole -b cdn.playhop.com
+    # Regex for all subdomains of playhop.com
+    sqlite3 /etc/pihole/gravity.db "INSERT OR IGNORE INTO domainlist (type, domain) VALUES (3, '(^|\\.)playhop\\.com$');"
     
     echo "✅ Roblox and Playhop domains blocked successfully!"
 }
