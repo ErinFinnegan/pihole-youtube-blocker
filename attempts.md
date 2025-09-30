@@ -1,3 +1,27 @@
+## 2025-09-30 Attempt A35
+Goal:
+Add Playhop domain blocking and verify enforcement end-to-end.
+
+Actions:
+- Created branch `feat/block-playhop`.
+- Updated `ChangedFiles/working_pihole_buttons.py`, `roblox_scratch_domains.sh`, and `enhanced_blocking_scripts.sh` to include Playhop domains and a Pi-hole regex (type 3) for `(^|\.)playhop\.com$`.
+- Pushed branch and prepared PR.
+
+Commands run / PRs:
+- ssh zerocool@pi-hole.local "sudo sqlite3 /etc/pihole/pihole-FTL.db \"SELECT domain, COUNT(*) FROM queries WHERE timestamp > strftime('%s','now')-900 GROUP BY domain ORDER BY COUNT(*) DESC LIMIT 200;\" | grep -i hop"
+- On Pi: `pihole -q games.playhop.com` and `pihole -q playhop.com`
+- PR: `https://github.com/ErinFinnegan/pihole-youtube-blocker/pull/new/feat/block-playhop`
+
+Observations:
+- FTL recent queries included `games.playhop.com` and `playhop.com`.
+- After deploying the regex and block entries, both domains report BLOCKED via `pihole -q`.
+
+Result: ✅ Playhop blocked (all `playhop.com` subdomains covered by regex).
+
+Next step:
+- Monitor FTL logs for any additional Playhop-related TLDs; add if they appear.
+- Merge the PR after a day of successful enforcement.
+
 ## 2025-09-28 Attempt A34
 Goal:
 Capture wrap-up state: one-time 8:30 PM block scheduled; TFT UI tweaks; next steps for Mac YouTube DNS.
