@@ -22,6 +22,28 @@ Notes:
 
 Result: ⏳ Pending after correcting DNS server to Pi-hole and re-testing.
 
+## 2025-10-03 Attempt A38
+Goal:
+Confirm Windows laptop now uses Pi-hole (non-blocking), capture IPv6 impact, and record current IP.
+
+Actions:
+- Disabled IPv6 on the Windows Wi‑Fi adapter to prevent IPv6 DNS bypass to ISP.
+- Verified with `nslookup` that default DNS now points to Pi-hole.
+- Identified current Windows IP as `192.168.1.223` and observed active queries in Pi-hole Query Log.
+
+Verification:
+- Windows:
+  - `ipconfig /flushdns` → success
+  - `nslookup` → Default Server address now shows `192.168.1.167`
+  - `nslookup pi.hole 192.168.1.167` → resolves to `192.168.1.167` (and IPv6 of Pi if present)
+- Pi-hole DB snapshots (FTL): recent clients included `192.168.1.223`; query counts high for that IP in last 10 minutes.
+
+Result: ✅ Windows laptop traffic is flowing through Pi-hole (IPv4). Blocking remains off by choice.
+
+Next step:
+- Optional: add `192.168.1.223` as a client in Group Management → Clients and map to `KidsRestricted` for when blocking is enabled later.
+- If re-enabling IPv6 in future, set the adapter’s IPv6 DNS to Pi-hole’s IPv6 address and keep DoH off to maintain enforcement.
+
 ## 2025-09-30 Attempt A35
 Goal:
 Add Playhop domain blocking and verify enforcement end-to-end.
