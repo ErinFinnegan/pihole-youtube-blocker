@@ -1,3 +1,27 @@
+## 2025-10-03 Attempt A37
+Goal:
+Confirm Windows laptop is actually using Pi-hole DNS without enabling blocking; document findings and next steps.
+
+Findings (Windows laptop 192.168.1.36):
+- `nslookup` default server showed Spectrum/router, not Pi-hole.
+- `nslookup pi.hole` failed (expected if not using Pi-hole by default).
+- Windows showed a "Preferred" IPv4 DNS of `192.168.1.223` (router), not `192.168.1.167` (Pi-hole).
+- MAC randomization for SSID appears off; two MACs observed earlier (.25 and .26) are already mapped to `KidsRestricted` along with the IP.
+
+Verification steps (non-blocking):
+- Windows GUI: Settings → Network & Internet → Wi‑Fi → your network → DNS server assignment → Edit → Manual → IPv4: Preferred DNS = `192.168.1.167`, Alternate blank; Encryption/DoH = Off (Unencrypted only).
+- Browser DoH: turn off "Use secure DNS" in Chrome/Edge/Firefox.
+- Commands (Windows):
+  - `nslookup` → confirm Default Server Address = `192.168.1.167`.
+  - `nslookup pi.hole 192.168.1.167` → should return `192.168.1.167`.
+  - `nslookup example.com 192.168.1.167` and `nslookup example.com` → answers should match.
+
+Notes:
+- Admin vs non-admin Command Prompt does not change DNS server selection.
+- If Default Server still shows router after setting DNS, check for VPN/agent, or router DNS proxy; consider temporarily disabling IPv6 on the adapter to avoid bypass.
+
+Result: ⏳ Pending after correcting DNS server to Pi-hole and re-testing.
+
 ## 2025-09-30 Attempt A35
 Goal:
 Add Playhop domain blocking and verify enforcement end-to-end.
@@ -444,5 +468,55 @@ Result: ❌ (partial ✅ on button detection prior to reboot)
 
 Next step:
 Reboot to clear state (done in A14) and then verify fresh logs; consider reducing display loop sudo usage and ensure non-blocking rendering.
+
+## 2025-10-03 Attempt A36
+Goal:
+Ensure Windows laptop is enforced by KidsRestricted; handle MAC randomization; assign client to group and reload Pi-hole.
+
+Commands run / PRs:
+- On Mac (SSH to Pi): added identifiers and mapped to KidsRestricted via gravity.db
+```
+ssh zerocool@pi-hole.local 'bash -s' <<'EOF'
+set -euo pipefail
+MAC1='E0:0A:F6:A6:99:25'
+MAC2='E0:0A:F6:A6:99:26'
+IP='192.168.1.36'
+GID=$(sudo sqlite3 /etc/pihole/gravity.db "SELECT id FROM 'group' WHERE name='KidsRestricted';")
+sudo sqlite3 /etc/pihole/gravity.db "PRAGMA busy_timeout=5000; \
+INSERT OR IGNORE INTO client (ip,comment) VALUES ('$MAC1','Windows Laptop Wi-Fi'); \
+INSERT OR IGNORE INTO client (ip,comment) VALUES ('$MAC2','Windows Laptop Wi-Fi'); \
+INSERT OR IGNORE INTO client (ip,comment) VALUES ('$IP','Windows Laptop IP');"
+for IDENT in "$MAC1" "$MAC2" "$IP"; do
+  CID=$(sudo sqlite3 /etc/pihole/gravity.db "SELECT id FROM client WHERE ip='$IDENT';")
+  sudo sqlite3 /etc/pihole/gravity.db "PRAGMA busy_timeout=5000; \
+  INSERT OR IGNORE INTO client_by_group (client_id,group_id) VALUES ($CID,$GID);"
+done
+sudo pihole reloadlists || sudo pihole restartdns
+EOF
+```
+
+Output digest:
+- Clients present:
+```
+11|192.168.1.36|Alex Laptop Test
+12|E0:0A:F6:A6:99:25|Alex Laptop Real
+15|E0:0A:F6:A6:99:26|Windows Laptop Wi-Fi
+```
+- Group mapping:
+```
+192.168.1.36|KidsRestricted
+E0:0A:F6:A6:99:25|KidsRestricted
+E0:0A:F6:A6:99:26|Default,KidsRestricted
+```
+- reloadlists/restartdns executed without error
+
+Observations:
+- Windows showed MAC flipping (.25 → .26). Randomization appears off per-SSID, but both MACs are now mapped to KidsRestricted, as well as the current IP.
+- Next, confirm the laptop uses Pi-hole DNS and DoH is off; flush DNS on Windows.
+
+Next step:
+- On Windows (as Admin): `ipconfig /flushdns`
+- Ensure DNS is set to Pi-hole (192.168.1.167) and Secure DNS disabled in browser/Windows.
+- Test: `nslookup roblox.com 192.168.1.167` (expect 0.0.0.0), `nslookup roblox.com` (should match).
 
 
