@@ -16,6 +16,23 @@ To-do:
 
 Result: ⏳ Planned
 
+## 2025-10-04 Attempt A40
+Goal:
+Decouple Roblox/Playhop from YouTube, remap GPIO, add Roblox helpers/group, migrate domain mappings/clients, and update display.
+
+Actions:
+- Created branch `feat/split-youtube-roblox-toggles` and added A39 plan.
+- Updated `pitft_buttons.py`: BTN23 toggles YouTube (KidsRestricted), BTN24 toggles Roblox/Playhop (KidsRoblox). Uses gravity.db to decide block vs allow and writes UI hints.
+- Added Roblox helpers via `enhanced_blocking_scripts.sh` and installed on Pi: `/usr/local/bin/pitft_roblox_block.sh` and `/usr/local/bin/pitft_roblox_allow.sh` (toggle `KidsRoblox`).
+- Wrote and ran migration on Pi: created `KidsRoblox` group, moved Roblox/Playhop domain mappings to it, and mirrored clients from `KidsRestricted`.
+- Updated `Screen_status.py` to display independent Roblox status by reading `KidsRoblox`.
+
+Verification:
+- On Pi (sqlite): confirmed groups exist and enabled=0 initially: `KidsRestricted|0`, `KidsRoblox|0`.
+- Counted mappings: `KidsRoblox` has Roblox/Playhop domain entries and mirrored clients; FTL reloaded.
+
+Result: ✅ Decoupling complete; separate toggles wired and groups ready. Next: expand TFT UI to 4 clear states and live on-device test.
+
 ## 2025-10-03 Attempt A37
 Goal:
 Confirm Windows laptop is actually using Pi-hole DNS without enabling blocking; document findings and next steps.
