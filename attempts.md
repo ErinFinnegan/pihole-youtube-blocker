@@ -1,3 +1,21 @@
+## 2025-10-04 Attempt A39
+Goal:
+Split YouTube and Roblox/Playhop toggles, decouple logic across scripts, add local web UI, and update deployment.
+
+To-do:
+- Create branch feat/split-youtube-roblox-toggles
+- Decouple Roblox/Playhop blocking from YouTube across scripts
+- Add toggle_youtube on/off logic in Python and shell
+- Add toggle_roblox_playhop on/off logic in Python and shell
+- Remap GPIO: BTN23 toggles YouTube; BTN24 toggles Roblox/Playhop
+- Persist and read block state reliably from gravity.db
+- Expand TFT UI to show 4 states with clear labels/colors
+- Scaffold local web UI to toggle YouTube/Roblox (auth)
+- Update docs and deployment steps for new controls
+- Test on-device: verify toggles and Pi-hole enforcement
+
+Result: ⏳ Planned
+
 ## 2025-10-03 Attempt A37
 Goal:
 Confirm Windows laptop is actually using Pi-hole DNS without enabling blocking; document findings and next steps.
