@@ -29,12 +29,13 @@ IMG_W, IMG_H = disp.height, disp.width  # 240x135
 # ----------------------------
 # Colors & Fonts
 # ----------------------------
-GREEN = (0,180,0)
-RED   = (200,0,0)
-WHITE = (255,255,255)
-BLACK = (0,0,0)
-BLUE  = (0,100,200)
-YELLOW = (255,255,0)
+GREEN  = (0,180,0)
+RED    = (200,0,0)
+WHITE  = (255,255,255)
+BLACK  = (0,0,0)
+BLUE   = (0,100,200)     # Use when Roblox blocked, YouTube allowed
+ORANGE = (255,140,0)     # Use when YouTube blocked, Roblox allowed
+YELLOW = (255,255,0)     # Reserved for transient confirmation/overlay
 
 def font_big():
     try:
@@ -165,9 +166,19 @@ def draw(blocked: bool, show_button_feedback=False, show_status_confirmation=Fal
         bg_color = YELLOW
         title = "STATUS CHANGED!"
     else:
-        # Normal status display - show primary service status
-        bg_color = RED if youtube_status else GREEN
-        title = "YouTube BLOCKED" if youtube_status else "YouTube ALLOWED"
+        # Normal status display - derive combined state with distinct colors
+        if youtube_status and roblox_status:
+            bg_color = RED
+            title = "YT BLOCKED | RB BLOCKED"
+        elif youtube_status and not roblox_status:
+            bg_color = ORANGE
+            title = "YT BLOCKED | RB ALLOWED"
+        elif (not youtube_status) and roblox_status:
+            bg_color = BLUE
+            title = "YT ALLOWED | RB BLOCKED"
+        else:
+            bg_color = GREEN
+            title = "YT ALLOWED | RB ALLOWED"
     
     img = Image.new("RGB", (IMG_W, IMG_H), color=bg_color)
     d = ImageDraw.Draw(img)
@@ -203,16 +214,22 @@ def draw(blocked: bool, show_button_feedback=False, show_status_confirmation=Fal
             cw, ch = d.textsize(confirm_msg, font=FS)
         d.text(((IMG_W - cw)//2, 50), confirm_msg, font=FS, fill=text_color)
     
-    # Add status indicators for other services (only in normal display mode)
+    # Add status indicators lines (only in normal display mode)
     if not show_button_feedback and not show_status_confirmation:
-        # Show Roblox status (independent KidsRoblox group)
-        roblox_text = "Roblox: " + ("BLOCKED" if roblox_status else "ALLOWED")
+        yt_text = "YouTube: " + ("BLOCKED" if youtube_status else "ALLOWED")
+        rb_text = "Roblox:  " + ("BLOCKED" if roblox_status else "ALLOWED")
         try:
-            bbox = d.textbbox((0, 0), roblox_text, font=FB)
-            rw, rh = bbox[2] - bbox[0], bbox[3] - bbox[1]
+            bbox = d.textbbox((0, 0), yt_text, font=FB)
+            yt_w, yt_h = bbox[2] - bbox[0], bbox[3] - bbox[1]
         except AttributeError:
-            rw, rh = d.textsize(roblox_text, font=FB)
-        d.text(((IMG_W - rw)//2, 50), roblox_text, font=FB, fill=WHITE)
+            yt_w, yt_h = d.textsize(yt_text, font=FB)
+        try:
+            bbox2 = d.textbbox((0, 0), rb_text, font=FB)
+            rb_w, rb_h = bbox2[2] - bbox2[0], bbox2[3] - bbox2[1]
+        except AttributeError:
+            rb_w, rb_h = d.textsize(rb_text, font=FB)
+        d.text(((IMG_W - yt_w)//2, 50), yt_text, font=FB, fill=WHITE)
+        d.text(((IMG_W - rb_w)//2, 50 + yt_h + 6), rb_text, font=FB, fill=WHITE)
         
         # (Scratch line removed; Scratch is allowed by policy)
     
