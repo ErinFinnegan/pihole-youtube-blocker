@@ -3,12 +3,14 @@ import time, subprocess, threading, json, os
 import RPi.GPIO as GPIO
 
 # Pins
-BTN_BLOCK = 23
-BTN_ALLOW = 24
+# BTN23 → Toggle YouTube
+# BTN24 → Toggle Roblox/Playhop
+BTN_YOUTUBE = 23
+BTN_ROBLOX = 24
 
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(BTN_BLOCK, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(BTN_ALLOW, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(BTN_YOUTUBE, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(BTN_ROBLOX, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 DEBOUNCE_S = 0.2
 UI_HINT_PATH = "/tmp/pitft_ui.json"
@@ -68,15 +70,46 @@ def _op_done():
         _op_in_progress = False
 
 
-def _async_block():
-    write_ui_hint("toggling", "BLOCKING...")
-    _run_cmd(["/bin/bash", "/usr/local/bin/pitft_block.sh"])  # direct helper (SQLite only)
+def _youtube_blocked() -> bool:
+    try:
+        out = subprocess.check_output([
+            "sudo", "/usr/bin/sqlite3", "/etc/pihole/gravity.db",
+            "SELECT enabled FROM 'group' WHERE name='KidsRestricted';"
+        ], text=True).strip()
+        return out == "1"
+    except Exception:
+        return True
+
+
+def _roblox_blocked() -> bool:
+    try:
+        out = subprocess.check_output([
+            "sudo", "/usr/bin/sqlite3", "/etc/pihole/gravity.db",
+            "SELECT enabled FROM 'group' WHERE name='KidsRoblox';"
+        ], text=True).strip()
+        return out == "1"
+    except Exception:
+        # If group missing or query fails, assume not blocked (safer default)
+        return False
+
+
+def _async_toggle_youtube():
+    if _youtube_blocked():
+        write_ui_hint("toggling", "YOUTUBE: ALLOWING...")
+        _run_cmd(["/bin/bash", "/usr/local/bin/pitft_allow.sh"])  # set enabled=0
+    else:
+        write_ui_hint("toggling", "YOUTUBE: BLOCKING...")
+        _run_cmd(["/bin/bash", "/usr/local/bin/pitft_block.sh"])  # set enabled=1
     _op_done()
 
 
-def _async_allow():
-    write_ui_hint("toggling", "ALLOWING...")
-    _run_cmd(["/bin/bash", "/usr/local/bin/pitft_allow.sh"])  # direct helper (SQLite only)
+def _async_toggle_roblox():
+    if _roblox_blocked():
+        write_ui_hint("toggling", "ROBLOX: ALLOWING...")
+        _run_cmd(["/bin/bash", "/usr/local/bin/pitft_roblox_allow.sh"])  # set KidsRoblox enabled=0
+    else:
+        write_ui_hint("toggling", "ROBLOX: BLOCKING...")
+        _run_cmd(["/bin/bash", "/usr/local/bin/pitft_roblox_block.sh"])  # set KidsRoblox enabled=1
     _op_done()
 
 
@@ -92,28 +125,28 @@ def _start_if_idle(target_fn, label: str):
 
 
 def main():
-    print("[buttons] daemon started; monitoring pins 23 (BLOCK), 24 (ALLOW)", flush=True)
-    last = {BTN_BLOCK: 1, BTN_ALLOW: 1}
-    last_ts = {BTN_BLOCK: 0.0, BTN_ALLOW: 0.0}
+    print("[buttons] daemon started; BTN23=YouTube toggle, BTN24=Roblox/Playhop toggle", flush=True)
+    last = {BTN_YOUTUBE: 1, BTN_ROBLOX: 1}
+    last_ts = {BTN_YOUTUBE: 0.0, BTN_ROBLOX: 0.0}
     try:
         while True:
             now = time.time()
             # Poll with debounce
-            cur_block = GPIO.input(BTN_BLOCK)
-            if cur_block != last[BTN_BLOCK]:
-                print(f"[buttons] pin {BTN_BLOCK} changed -> {cur_block}", flush=True)
-                if cur_block == 0 and now - last_ts[BTN_BLOCK] > DEBOUNCE_S:
-                    last_ts[BTN_BLOCK] = now
-                    _start_if_idle(_async_block, "block")
-                last[BTN_BLOCK] = cur_block
+            cur_yt = GPIO.input(BTN_YOUTUBE)
+            if cur_yt != last[BTN_YOUTUBE]:
+                print(f"[buttons] pin {BTN_YOUTUBE} changed -> {cur_yt}", flush=True)
+                if cur_yt == 0 and now - last_ts[BTN_YOUTUBE] > DEBOUNCE_S:
+                    last_ts[BTN_YOUTUBE] = now
+                    _start_if_idle(_async_toggle_youtube, "toggle_youtube")
+                last[BTN_YOUTUBE] = cur_yt
 
-            cur_allow = GPIO.input(BTN_ALLOW)
-            if cur_allow != last[BTN_ALLOW]:
-                print(f"[buttons] pin {BTN_ALLOW} changed -> {cur_allow}", flush=True)
-                if cur_allow == 0 and now - last_ts[BTN_ALLOW] > DEBOUNCE_S:
-                    last_ts[BTN_ALLOW] = now
-                    _start_if_idle(_async_allow, "allow")
-                last[BTN_ALLOW] = cur_allow
+            cur_rb = GPIO.input(BTN_ROBLOX)
+            if cur_rb != last[BTN_ROBLOX]:
+                print(f"[buttons] pin {BTN_ROBLOX} changed -> {cur_rb}", flush=True)
+                if cur_rb == 0 and now - last_ts[BTN_ROBLOX] > DEBOUNCE_S:
+                    last_ts[BTN_ROBLOX] = now
+                    _start_if_idle(_async_toggle_roblox, "toggle_roblox")
+                last[BTN_ROBLOX] = cur_rb
 
             time.sleep(0.02)
     except KeyboardInterrupt:

@@ -231,6 +231,43 @@ sudo systemctl kill --signal=SIGUSR1 tft-youtube.service 2>/dev/null || true
 echo "Roblox allowed, Scratch whitelisted, and display refreshed!"
 EOF
 
+# Roblox/Playhop group-based toggle helpers (use group 'KidsRoblox')
+cat > /tmp/roblox_block << 'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+SQL=(sqlite3 -cmd "PRAGMA busy_timeout=5000;")
+${SQL[@]} /etc/pihole/gravity.db "INSERT OR IGNORE INTO 'group'(name,enabled) VALUES('KidsRoblox',0);"
+${SQL[@]} /etc/pihole/gravity.db "UPDATE 'group' SET enabled=1 WHERE name='KidsRoblox';"
+systemctl reload pihole-FTL 2>/dev/null || systemctl restart pihole-FTL 2>/dev/null || true
+systemctl kill --signal=SIGUSR1 tft-display.service 2>/dev/null || true
+EOF
+
+cat > /tmp/roblox_allow << 'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+SQL=(sqlite3 -cmd "PRAGMA busy_timeout=5000;")
+${SQL[@]} /etc/pihole/gravity.db "INSERT OR IGNORE INTO 'group'(name,enabled) VALUES('KidsRoblox',0);"
+${SQL[@]} /etc/pihole/gravity.db "UPDATE 'group' SET enabled=0 WHERE name='KidsRoblox';"
+systemctl reload pihole-FTL 2>/dev/null || systemctl restart pihole-FTL 2>/dev/null || true
+systemctl kill --signal=SIGUSR1 tft-display.service 2>/dev/null || true
+EOF
+
+cat > /tmp/roblox_status << 'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+status=$(sqlite3 /etc/pihole/gravity.db "SELECT enabled FROM 'group' WHERE name='KidsRoblox';" || echo "")
+if [ "$status" = "1" ]; then
+  echo "Roblox/Playhop: BLOCKED"
+else
+  echo "Roblox/Playhop: ALLOWED"
+fi
+EOF
+
+echo "Installing Roblox helpers to /usr/local/bin ..."
+sudo install -m 0755 /tmp/roblox_block /usr/local/bin/pitft_roblox_block.sh
+sudo install -m 0755 /tmp/roblox_allow /usr/local/bin/pitft_roblox_allow.sh
+sudo install -m 0755 /tmp/roblox_status /usr/local/bin/rs
+
 echo "Enhanced blocking scripts created!"
 echo ""
 echo "To install these on your Pi, run:"

@@ -50,12 +50,12 @@ FS = ImageFont.load_default()
 # ----------------------------
 # GPIO Buttons (Mini PiTFT has 2)
 # ----------------------------
-BTN_BLOCK = 23   # left/front button
-BTN_ALLOW = 24   # right/front button
+BTN_YOUTUBE = 23   # left/front button: toggle YouTube
+BTN_ROBLOX  = 24   # right/front button: toggle Roblox/Playhop
 
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(BTN_BLOCK, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(BTN_ALLOW, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(BTN_YOUTUBE, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(BTN_ROBLOX, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 # Global variables for button feedback
 button_pressed = None
@@ -76,6 +76,23 @@ def allow_youtube(_ch=None):
     button_press_time = time.time()
     # Run the actual command in a separate thread to avoid blocking
     threading.Thread(target=lambda: subprocess.call(["/bin/bash", "/usr/local/bin/pitft_allow.sh"]), daemon=True).start()
+
+
+def toggle_roblox(_ch=None):
+    global button_pressed, button_press_time
+    button_pressed = "toggling"
+    button_press_time = time.time()
+    # Decide helper based on KidsRoblox group
+    try:
+        out = subprocess.check_output([
+            "sudo", "/usr/bin/sqlite3", "/etc/pihole/gravity.db",
+            "SELECT enabled FROM 'group' WHERE name='KidsRoblox';"
+        ], text=True).strip()
+        is_blocked = (out == "1")
+    except Exception:
+        is_blocked = False
+    helper = "/usr/local/bin/pitft_roblox_allow.sh" if is_blocked else "/usr/local/bin/pitft_roblox_block.sh"
+    threading.Thread(target=lambda: subprocess.call(["/bin/bash", helper]), daemon=True).start()
 
 # Button state tracking for polling
 button_states = {BTN_BLOCK: True, BTN_ALLOW: True}  # True = not pressed (pulled up)
@@ -117,8 +134,14 @@ def youtube_blocked() -> bool:
         return True  # fail safe: assume blocked
 
 def roblox_blocked() -> bool:
-    """Roblox blocking follows the KidsRestricted group state (same as YouTube)."""
-    return youtube_blocked()
+    try:
+        out = subprocess.check_output([
+            "sudo","/usr/bin/sqlite3","/etc/pihole/gravity.db",
+            "SELECT enabled FROM 'group' WHERE name='KidsRoblox';"
+        ], text=True).strip()
+        return out == "1"
+    except Exception:
+        return False
 
 # Scratch is always allowed by policy; avoid any runtime DNS checks
 
@@ -182,8 +205,8 @@ def draw(blocked: bool, show_button_feedback=False, show_status_confirmation=Fal
     
     # Add status indicators for other services (only in normal display mode)
     if not show_button_feedback and not show_status_confirmation:
-        # Show Roblox status (mirror KidsRestricted state for consistency)
-        roblox_text = "Roblox: " + ("BLOCKED" if youtube_status else "ALLOWED")
+        # Show Roblox status (independent KidsRoblox group)
+        roblox_text = "Roblox: " + ("BLOCKED" if roblox_status else "ALLOWED")
         try:
             bbox = d.textbbox((0, 0), roblox_text, font=FB)
             rw, rh = bbox[2] - bbox[0], bbox[3] - bbox[1]
@@ -208,16 +231,16 @@ def main():
         current_time = time.time()
         
         # Poll buttons for presses (replaces edge detection)
-        for button_pin in [BTN_BLOCK, BTN_ALLOW]:
+        for button_pin in [BTN_YOUTUBE, BTN_ROBLOX]:
             current_state = GPIO.input(button_pin)
             if current_state != button_states[button_pin]:  # State changed
                 if current_state == False and current_time - last_button_time[button_pin] > DEBOUNCE_TIME:
                     # Button pressed (False = pressed due to pull-up)
                     last_button_time[button_pin] = current_time
-                    if button_pin == BTN_BLOCK:
+                    if button_pin == BTN_YOUTUBE:
                         block_youtube()
-                    elif button_pin == BTN_ALLOW:
-                        allow_youtube()
+                    elif button_pin == BTN_ROBLOX:
+                        toggle_roblox()
                 button_states[button_pin] = current_state
         
         blocked = youtube_blocked()
