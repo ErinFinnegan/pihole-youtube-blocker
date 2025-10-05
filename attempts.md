@@ -16,6 +16,31 @@ To-do:
 
 Result: ⏳ Planned
 
+## 2025-10-04 Attempt A41
+Goal:
+Get independent BTN23/BTN24 toggles working on-device; stabilize display and fix legacy conflicts.
+
+Actions:
+- Disabled and removed legacy `tft-youtube.service`; ensured only `tft-display.service` and `pitft-buttons.service` run.
+- Rebooted Pi to clear SPI/display state.
+- Swapped button mapping to match hardware: BTN23→Roblox (KidsRoblox), BTN24→YouTube (KidsRestricted).
+- Updated display text (full titles per service), clamped text to screen, and removed periodic heartbeat redraw to prevent flicker.
+
+Verification (on-device):
+- Starting: YouTube ALLOWED, Roblox ALLOWED (green).
+- BTN23 presses: Roblox toggles only (allowed↔blocked); YouTube unchanged.
+- BTN24 presses: YouTube toggles only; Roblox unchanged.
+- Orientation stable; legacy overlay removed. Remaining: intermittent duplicate text observed in some transitions.
+
+Result: ✅ Independent toggles working and UI stable post-reboot. Next: clear-screen before each draw to remove duplicate text, then proceed to web UI scaffolding.
+
+Learnings:
+- Legacy process conflicts matter: an old `tft-youtube-status-fixed.py` kept auto-starting (via `tft-youtube.service`) and overrode UI/state; fully disabling/masking and removing the unit file, plus reboot, resolved it.
+- Hardware mapping can differ: actual wiring was BTN23→Roblox, BTN24→YouTube; swapped mappings in `pitft_buttons.py` to match physical behavior.
+- Display rendering on ST7789: avoid periodic heartbeat redraws (caused 1s black flash). Only redraw on state/overlay change. Also explicitly clear the hardware buffer (`disp.fill(...)`) and draw a full-screen background to prevent ghosting/duplicate text.
+- Text layout: combined one-line title easily clips at 240x135 rotated canvas; per-service lines (“YouTube: …”, “Roblox: …”) are clearer and fit. Adjusted font size and vertical spacing.
+- DB reliability: direct sqlite with `busy_timeout` and FTL reload works well; separate groups `KidsRestricted` (YouTube) and `KidsRoblox` (Roblox) decouple toggles cleanly.
+
 ## 2025-10-04 Attempt A40
 Goal:
 Decouple Roblox/Playhop from YouTube, remap GPIO, add Roblox helpers/group, migrate domain mappings/clients, and update display.

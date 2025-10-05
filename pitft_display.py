@@ -122,6 +122,11 @@ def draw_overlay_toggling(message: str):
             tw, th = d.textsize(message, font=FB)
         d.text(((IMG_W - tw)//2, 18), message, font=FB, fill=BLACK)
         d.text((6, IMG_H-18), datetime.now().strftime("%H:%M:%S"), font=FS, fill=BLACK)
+        # Fill hardware buffer to avoid any ghosting, then blit
+        try:
+            disp.fill(YELLOW)
+        except Exception:
+            pass
         disp.image(img)
     except Exception:
         pass
@@ -131,27 +136,22 @@ def draw(blocked: bool, rb_blocked: bool):
     try:
         if blocked and rb_blocked:
             bg = RED
-            title = "YT BLOCKED | RB BLOCKED"
         elif blocked and not rb_blocked:
             bg = ORANGE
-            title = "YT BLOCKED | RB ALLOWED"
         elif (not blocked) and rb_blocked:
             bg = BLUE
-            title = "YT ALLOWED | RB BLOCKED"
         else:
             bg = GREEN
-            title = "YT ALLOWED | RB ALLOWED"
-        img = Image.new("RGB", (IMG_W, IMG_H), color=bg)
+
+        # Clear to black first to ensure no ghosted/double text, then paint bg rect
+        img = Image.new("RGB", (IMG_W, IMG_H), color=BLACK)
         d = ImageDraw.Draw(img)
-        try:
-            bbox = d.textbbox((0, 0), title, font=FB)
-            tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
-        except AttributeError:
-            tw, th = d.textsize(title, font=FB)
-        d.text(((IMG_W - tw)//2, 18), title, font=FB, fill=WHITE)
-        # Per-service lines
+        d.rectangle([(0, 0), (IMG_W, IMG_H)], fill=bg)
+
+        # No combined title to avoid clipping; show only per-service lines
+
         yt_text = "YouTube: " + ("BLOCKED" if blocked else "ALLOWED")
-        rb_text = "Roblox:  " + ("BLOCKED" if rb_blocked else "ALLOWED")
+        rb_text = "Roblox: " + ("BLOCKED" if rb_blocked else "ALLOWED")
         try:
             bbox1 = d.textbbox((0, 0), yt_text, font=FB)
             yt_w, yt_h = bbox1[2] - bbox1[0], bbox1[3] - bbox1[1]
@@ -162,9 +162,20 @@ def draw(blocked: bool, rb_blocked: bool):
             rb_w, rb_h = bbox2[2] - bbox2[0], bbox2[3] - bbox2[1]
         except AttributeError:
             rb_w, rb_h = d.textsize(rb_text, font=FB)
-        d.text(((IMG_W - yt_w)//2, 48), yt_text, font=FB, fill=WHITE)
-        d.text(((IMG_W - rb_w)//2, 48 + yt_h + 6), rb_text, font=FB, fill=WHITE)
+        x_yt = max(0, min(IMG_W - yt_w, (IMG_W - yt_w)//2))
+        x_rb = max(0, min(IMG_W - rb_w, (IMG_W - rb_w)//2))
+        # Position lines with extra spacing (approx two line breaks)
+        y_yt = 28
+        y_rb = y_yt + (yt_h * 2) + 12
+        d.text((x_yt, y_yt), yt_text, font=FB, fill=WHITE)
+        d.text((x_rb, y_rb), rb_text, font=FB, fill=WHITE)
+
         d.text((6, IMG_H-18), datetime.now().strftime("%H:%M:%S"), font=FS, fill=WHITE)
+        # Fill hardware buffer first to eliminate ghosting, then draw image
+        try:
+            disp.fill(bg)
+        except Exception:
+            pass
         disp.image(img)
     except Exception:
         pass
@@ -177,6 +188,7 @@ def _on_sigusr1(signum, frame):
 
 
 def main():
+    global _sigusr1_flag
     # Start DB poller thread
     t = threading.Thread(target=db_poll_worker, daemon=True)
     t.start()
@@ -185,8 +197,8 @@ def main():
     signal.signal(signal.SIGUSR1, _on_sigusr1)
 
     last_drawn_state = None
-    ui_poll_interval = 0.01  # 100Hz for snappy overlay
-    heartbeat_interval = 1.0
+    ui_poll_interval = 0.02  # 50Hz is enough and reduces CPU
+    heartbeat_interval = 0.0  # disable periodic redraw to avoid flicker
     last_heartbeat = 0.0
 
     while True:
@@ -198,7 +210,9 @@ def main():
             if hint is not None:
                 draw_overlay_toggling(hint.get("msg") or "TOGGLING...")
             else:
-                draw(get_cached_blocked(), get_cached_roblox())
+                ytb = get_cached_blocked(); rbb = get_cached_roblox()
+                print(f"[display] refresh on signal: yt={ytb} rb={rbb}")
+                draw(ytb, rbb)
             # continue with normal loop
 
         # Immediate UI hint overlay
@@ -213,7 +227,8 @@ def main():
         blocked = get_cached_blocked()
         rb_blocked = get_cached_roblox()
         now = time.monotonic()
-        if (blocked, rb_blocked) != last_drawn_state or (now - last_heartbeat) >= heartbeat_interval:
+        if (blocked, rb_blocked) != last_drawn_state or (heartbeat_interval and (now - last_heartbeat) >= heartbeat_interval):
+            print(f"[display] state draw: yt={blocked} rb={rb_blocked}")
             draw(blocked, rb_blocked)
             last_drawn_state = (blocked, rb_blocked)
             last_heartbeat = now

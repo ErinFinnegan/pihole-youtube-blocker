@@ -3,14 +3,14 @@ import time, subprocess, threading, json, os
 import RPi.GPIO as GPIO
 
 # Pins
-# BTN23 → Toggle YouTube
-# BTN24 → Toggle Roblox/Playhop
-BTN_YOUTUBE = 23
-BTN_ROBLOX = 24
+# BTN23 → Toggle Roblox/Playhop (hardware wiring observed)
+# BTN24 → Toggle YouTube
+BTN_ROBLOX = 23
+BTN_YOUTUBE = 24
 
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(BTN_YOUTUBE, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(BTN_ROBLOX, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(BTN_YOUTUBE, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 DEBOUNCE_S = 0.2
 UI_HINT_PATH = "/tmp/pitft_ui.json"
@@ -125,21 +125,13 @@ def _start_if_idle(target_fn, label: str):
 
 
 def main():
-    print("[buttons] daemon started; BTN23=YouTube toggle, BTN24=Roblox/Playhop toggle", flush=True)
-    last = {BTN_YOUTUBE: 1, BTN_ROBLOX: 1}
-    last_ts = {BTN_YOUTUBE: 0.0, BTN_ROBLOX: 0.0}
+    print("[buttons] daemon started; BTN23=Roblox toggle, BTN24=YouTube toggle", flush=True)
+    last = {BTN_ROBLOX: 1, BTN_YOUTUBE: 1}
+    last_ts = {BTN_ROBLOX: 0.0, BTN_YOUTUBE: 0.0}
     try:
         while True:
             now = time.time()
             # Poll with debounce
-            cur_yt = GPIO.input(BTN_YOUTUBE)
-            if cur_yt != last[BTN_YOUTUBE]:
-                print(f"[buttons] pin {BTN_YOUTUBE} changed -> {cur_yt}", flush=True)
-                if cur_yt == 0 and now - last_ts[BTN_YOUTUBE] > DEBOUNCE_S:
-                    last_ts[BTN_YOUTUBE] = now
-                    _start_if_idle(_async_toggle_youtube, "toggle_youtube")
-                last[BTN_YOUTUBE] = cur_yt
-
             cur_rb = GPIO.input(BTN_ROBLOX)
             if cur_rb != last[BTN_ROBLOX]:
                 print(f"[buttons] pin {BTN_ROBLOX} changed -> {cur_rb}", flush=True)
@@ -147,6 +139,14 @@ def main():
                     last_ts[BTN_ROBLOX] = now
                     _start_if_idle(_async_toggle_roblox, "toggle_roblox")
                 last[BTN_ROBLOX] = cur_rb
+
+            cur_yt = GPIO.input(BTN_YOUTUBE)
+            if cur_yt != last[BTN_YOUTUBE]:
+                print(f"[buttons] pin {BTN_YOUTUBE} changed -> {cur_yt}", flush=True)
+                if cur_yt == 0 and now - last_ts[BTN_YOUTUBE] > DEBOUNCE_S:
+                    last_ts[BTN_YOUTUBE] = now
+                    _start_if_idle(_async_toggle_youtube, "toggle_youtube")
+                last[BTN_YOUTUBE] = cur_yt
 
             time.sleep(0.02)
     except KeyboardInterrupt:
