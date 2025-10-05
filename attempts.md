@@ -1,3 +1,18 @@
+## 2025-10-04 Attempt A42
+Goal:
+Deploy a simple local web UI to toggle YouTube/Roblox with auth; prep for scheduling controls.
+
+Actions:
+- Created branch `feat/web-ui-toggles` and added `web_toggle.py` (Flask) with basic auth.
+- Deployed as `web-toggle.service` (root), venv at `/home/zerocool/toggle-venv`.
+- URL: `http://pi-hole.local:8080/` (default creds admin/toggle123; change later via unit env).
+- UI shows current YouTube/Roblox status and Block/Allow buttons; reflects hardware button presses.
+
+Verification:
+- Toggling via web updates gravity.db and the TFT UI; enforcement matches expectations.
+
+Result: ✅ Web UI live and working locally. Next: add schedule controls (show current cron, one-shot block-after-minutes form).
+
 ## 2025-10-04 Attempt A39
 Goal:
 Split YouTube and Roblox/Playhop toggles, decouple logic across scripts, add local web UI, and update deployment.
