@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import os
+import re
 import sqlite3
+import subprocess
 from functools import wraps
 from typing import Tuple
 
@@ -131,6 +133,19 @@ INDEX_TMPL = """
   </div>
 
   <div class="sep"></div>
+  <h3>Cron Schedule</h3>
+  <div class="row"><div style="width: 160px;">Block time</div><div>{{ cron_block or '—' }}</div></div>
+  <div class="row"><div style="width: 160px;">Allow time</div><div>{{ cron_allow or '—' }}</div></div>
+
+  <div class="sep"></div>
+  <h3>One-shot Block</h3>
+  <form method="post" action="{{ url_for('schedule_block_after') }}" class="row">
+    <label for="minutes" style="width: 160px;">Block after (minutes)</label>
+    <input id="minutes" name="minutes" type="number" min="1" max="1440" placeholder="e.g. 30" required />
+    <button type="submit">Set</button>
+  </form>
+
+  <div class="sep"></div>
   <div class="note">Authenticated access only. Page refreshes every ~5s to reflect hardware button presses.</div>
 
 </body>
@@ -142,7 +157,8 @@ INDEX_TMPL = """
 @require_auth
 def index() -> Response:
     yt, rb = _get_status()
-    return render_template_string(INDEX_TMPL, yt=yt, rb=rb)
+    cron_block, cron_allow = _get_cron_times()
+    return render_template_string(INDEX_TMPL, yt=yt, rb=rb, cron_block=cron_block, cron_allow=cron_allow)
 
 
 @app.post("/toggle/youtube")
@@ -160,6 +176,60 @@ def toggle_roblox():
     yt, rb = _get_status()
     _set_enabled(GROUP_ROBLOX, not rb)
     flash(f"Roblox => {'BLOCKED' if not rb else 'ALLOWED'}")
+    return redirect(url_for("index"))
+
+
+def _get_cron_times() -> tuple[str | None, str | None]:
+    try:
+        out = subprocess.check_output(["/usr/bin/crontab", "-l"], text=True)
+    except Exception:
+        return None, None
+    block_time = None
+    allow_time = None
+    for line in out.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        m = re.match(r"^(\S+)\s+(\S+)\s+\S+\s+\S+\s+\S+\s+(.+)$", line)
+        if not m:
+            continue
+        minute, hour, cmd = m.groups()
+        hhmm = f"{hour.zfill(2)}:{minute.zfill(2)}"
+        if "pitft_cron_block" in cmd and not block_time:
+            block_time = hhmm
+        if "pitft_cron_allow" in cmd and not allow_time:
+            allow_time = hhmm
+    return block_time, allow_time
+
+
+def _schedule_block_after_minutes(minutes: int) -> bool:
+    if minutes < 1 or minutes > 1440:
+        return False
+    cmd = [
+        "/usr/bin/systemd-run",
+        "--unit", f"web-toggle-once-{minutes}m",
+        "--on-active", f"{minutes}m",
+        "/bin/bash", "-lc",
+        "/usr/local/bin/pitft_block.sh && /usr/local/bin/pitft_roblox_block.sh"
+    ]
+    try:
+        subprocess.check_output(cmd, text=True)
+        return True
+    except Exception:
+        return False
+
+
+@app.post("/schedule/block_after")
+@require_auth
+def schedule_block_after():
+    try:
+        minutes = int(request.form.get("minutes", "0"))
+    except Exception:
+        minutes = 0
+    if _schedule_block_after_minutes(minutes):
+        flash(f"Scheduled one-shot block in {minutes} minute(s)")
+    else:
+        flash("Failed to schedule block; please enter 1–1440 minutes")
     return redirect(url_for("index"))
 
 
